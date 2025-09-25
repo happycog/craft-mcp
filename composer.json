@@ -29,7 +29,7 @@
     },
     "require-dev": {
         "markhuot/craft-pest-core": "dev-phpunit-db-overrides",
-    "phpstan/phpstan": "*",
+    "phpstan/phpstan": "^1.12",
         "craftcms/phpstan": "dev-main"
     },
     "minimum-stability": "dev",
