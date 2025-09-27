@@ -9,3 +9,6 @@ parameters:
         - .phpstorm.meta.php/Container.stub
         - .phpstorm.meta.php/Craft.stub
         - .phpstorm.meta.php/functions.stub
+    ignoreErrors:
+        # Ignore all errors from .stub files
+        - '#\.stub$#'
