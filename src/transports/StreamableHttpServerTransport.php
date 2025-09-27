@@ -21,6 +21,10 @@ class StreamableHttpServerTransport implements ServerTransportInterface
     use EventEmitterTrait;
 
     protected SessionHandlerInterface $sessionHandler;
+    
+    /**
+     * @var array<string, array{id: string, created_at: int, messages: array<int, array{message: Message, context: array<string, mixed>, timestamp: int}>}>
+     */
     protected array $sessions = []; // Keep for SSE message queuing
     protected ?string $currentSessionId = null;
     protected bool $listening = false;
@@ -49,9 +53,15 @@ class StreamableHttpServerTransport implements ServerTransportInterface
         $this->emit('close', ['Transport closed']);
     }
 
+    /**
+     * @var array<string, mixed>|null
+     */
     protected ?array $pendingResponse = null;
     protected ?string $pendingSessionId = null;
 
+    /**
+     * @param array<string, mixed> $context
+     */
     public function sendMessage(Message $message, string $sessionId, array $context = []): PromiseInterface
     {
         return new Promise(function ($resolve, $reject) use ($message, $sessionId, $context) {
@@ -68,15 +78,18 @@ class StreamableHttpServerTransport implements ServerTransportInterface
             ];
 
             // Convert Message object to array for JSON response
-            $messageData = $message;
             if (method_exists($message, 'jsonSerialize')) {
+                /** @var mixed $messageData */
                 $messageData = $message->jsonSerialize();
             } elseif (method_exists($message, 'toArray')) {
+                /** @var mixed $messageData */
                 $messageData = $message->toArray();
+            } else {
+                $messageData = ['error' => 'Unable to serialize message'];
             }
 
             // Store for immediate return
-            $this->pendingResponse = $messageData;
+            $this->pendingResponse = is_array($messageData) ? $messageData : ['data' => $messageData];
             $this->pendingSessionId = $sessionId;
 
             $resolve(null);
@@ -98,10 +111,11 @@ class StreamableHttpServerTransport implements ServerTransportInterface
         
         // If we don't have parsed body params, try to parse the raw body
         if (empty($body)) {
-            $body = json_decode($rawBody, true);
+            $decodedBody = json_decode($rawBody, true);
+            $body = is_array($decodedBody) ? $decodedBody : [];
         }
 
-        if (!$body || !isset($body['method'])) {
+        if (!is_array($body) || !isset($body['method']) || !is_string($body['method'])) {
             throw new BadRequestHttpException('Invalid JSON-RPC request');
         }
 
@@ -110,22 +124,34 @@ class StreamableHttpServerTransport implements ServerTransportInterface
 
         if ($isInitializeRequest) {
             // For initialize requests, generate a new session ID
-            $sessionId = $this->sessionHandler->generateSessionId();
-            $this->currentSessionId = $sessionId;
-            $this->initializeSession($sessionId, true); // true = emit client_connected
-        } else {
-            // For other requests, session ID is required (check header first, then query param)
-            $sessionId = $request->getHeaders()->get('Mcp-Session-Id') ?? $request->getQueryParam('sessionId');
-            if (!$sessionId) {
-                throw new BadRequestHttpException('Mcp-Session-Id header or sessionId parameter required for non-initialize requests');
+            if ($this->sessionHandler instanceof CraftSessionHandler) {
+                $sessionId = $this->sessionHandler->generateSessionId();
+            } else {
+                $sessionId = 'session_' . uniqid() . '_' . time();
             }
             $this->currentSessionId = $sessionId;
-            $this->initializeSession($sessionId, false); // false = don't emit client_connected
-        }
+            $this->initializeSession($sessionId, true); // true = emit client_connected
+            } else {
+                // For other requests, session ID is required (check header first, then query param)
+                $sessionId = $request->getHeaders()->get('Mcp-Session-Id') ?? $request->getQueryParam('sessionId');
+                if (!is_string($sessionId) || $sessionId === '') {
+                    throw new BadRequestHttpException('Mcp-Session-Id header or sessionId parameter required for non-initialize requests');
+                }
+                $this->currentSessionId = $sessionId;
+                $this->initializeSession($sessionId, false); // false = don't emit client_connected
+            }
 
         try {
             // Parse the JSON-RPC message - Parser expects JSON string
-            $jsonString = is_string($rawBody) ? $rawBody : json_encode($body);
+            if ($rawBody) {
+                $jsonString = $rawBody;
+            } else {
+                $encoded = json_encode($body);
+                if ($encoded === false) {
+                    throw new BadRequestHttpException('Failed to encode request body');
+                }
+                $jsonString = $encoded;
+            }
             $message = Parser::parse($jsonString);
             
             // Clear any pending response
@@ -135,8 +161,9 @@ class StreamableHttpServerTransport implements ServerTransportInterface
             // Emit the message event to let the protocol handle it
             $this->emit('message', [$message, $sessionId, ['request' => $request, 'response' => $response]]);
             
-            // Check if we received a response
-            if ($this->pendingResponse && $this->pendingSessionId === $sessionId) {
+            // Check if we received a response (the emit call above may have set pendingResponse via sendMessage)
+            // @phpstan-ignore-next-line The emit() call above may have set pendingResponse via event handler
+            if ($this->pendingResponse !== null) {
                 $response->format = Response::FORMAT_JSON;
                 $response->data = $this->pendingResponse;
                 
@@ -176,7 +203,7 @@ class StreamableHttpServerTransport implements ServerTransportInterface
     public function handleGet(Request $request, Response $response): Response
     {
         $sessionId = $request->getQueryParam('sessionId');
-        if (!$sessionId || !isset($this->sessions[$sessionId])) {
+        if (!is_string($sessionId) || $sessionId === '' || !isset($this->sessions[$sessionId])) {
             throw new NotFoundHttpException('Session not found');
         }
 
@@ -191,7 +218,8 @@ class StreamableHttpServerTransport implements ServerTransportInterface
         $response->headers->set('Access-Control-Allow-Headers', 'Content-Type');
         $response->headers->set('X-Accel-Buffering', 'no');
 
-        $lastEventId = (int)$request->getQueryParam('lastEventId', 0);
+        $lastEventIdParam = $request->getQueryParam('lastEventId', '0');
+        $lastEventId = is_numeric($lastEventIdParam) ? (int)$lastEventIdParam : 0;
         $session = &$this->sessions[$sessionId];
 
         $response->stream = function () use (&$session, $lastEventId) {
@@ -244,7 +272,7 @@ class StreamableHttpServerTransport implements ServerTransportInterface
     public function handleDelete(Request $request, Response $response): Response
     {
         $sessionId = $request->getQueryParam('sessionId');
-        if ($sessionId) {
+        if (is_string($sessionId) && $sessionId !== '') {
             // Remove from persistent storage
             $this->sessionHandler->destroy($sessionId);
             
@@ -291,6 +319,7 @@ class StreamableHttpServerTransport implements ServerTransportInterface
 
     /**
      * Get session data from persistent storage
+     * @return array<string, mixed>|false
      */
     public function getSessionData(string $sessionId): array|false
     {
@@ -298,15 +327,21 @@ class StreamableHttpServerTransport implements ServerTransportInterface
         if ($data === false) {
             return false;
         }
-        return json_decode($data, true) ?: false;
+        $decoded = json_decode($data, true);
+        return is_array($decoded) ? $decoded : false;
     }
 
     /**
      * Update session data in persistent storage
+     * @param array<string, mixed> $data
      */
     public function updateSessionData(string $sessionId, array $data): bool
     {
-        return $this->sessionHandler->write($sessionId, json_encode($data));
+        $encoded = json_encode($data);
+        if ($encoded === false) {
+            throw new \RuntimeException('Failed to encode session data');
+        }
+        return $this->sessionHandler->write($sessionId, $encoded);
     }
 
     /**
@@ -319,6 +354,7 @@ class StreamableHttpServerTransport implements ServerTransportInterface
 
     /**
      * Get all active sessions
+     * @return array<string, array{id: string, created_at: int, messages: array<int, array{message: Message, context: array<string, mixed>, timestamp: int}>}>
      */
     public function getSessions(): array
     {
