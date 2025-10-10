@@ -94,19 +94,6 @@ it('can update entry type handle', function () {
     expect($entryType->handle)->toBe('updatedHandle');
 });
 
-it('can toggle title field', function () {
-    $created = ($this->createEntryType)('Test Entry Type', ['hasTitleField' => true]);
-
-    $result = ($this->updateEntryType)($created['entryTypeId'], ['hasTitleField' => false]);
-
-    expect($result['hasTitleField'])->toBeFalse();
-    expect($result['changes'])->toContain('hasTitleField');
-
-    // Verify in database
-    $entryType = Craft::$app->getEntries()->getEntryTypeById($created['entryTypeId']);
-    expect($entryType->hasTitleField)->toBeFalse();
-});
-
 it('can update translation method', function () {
     $created = ($this->createEntryType)('Test Entry Type', ['titleTranslationMethod' => 'site']);
 
@@ -176,18 +163,15 @@ it('can update multiple properties at once', function () {
 
     $result = ($this->updateEntryType)($created['entryTypeId'], [
         'name' => 'Updated Name',
-        'hasTitleField' => false,
         'icon' => 'article',
         'color' => 'red'
     ]);
 
     expect($result['name'])->toBe('Updated Name');
-    expect($result['hasTitleField'])->toBeFalse();
     expect($result['icon'])->toBe('article');
     expect($result['color'])->toBe('red');
 
     expect($result['changes'])->toContain('name');
-    expect($result['changes'])->toContain('hasTitleField');
     expect($result['changes'])->toContain('icon');
     expect($result['changes'])->toContain('color');
 });
@@ -211,7 +195,7 @@ it('throws exception for duplicate handle', function () {
     $created2 = ($this->createEntryType)('Second Entry Type', ['handle' => 'secondHandle']);
 
     expect(fn() => ($this->updateEntryType)($created2['entryTypeId'], ['handle' => 'duplicateHandle']))
-        ->toThrow(\Exception::class, 'Failed to update entry type: handle: Handle "duplicateHandle" has already been taken.');
+        ->toThrow(\Exception::class, 'Failed to save entry type: handle: Handle "duplicateHandle" has already been taken.');
 });
 
 it('throws exception for invalid translation method', function () {
