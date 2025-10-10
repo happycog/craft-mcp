@@ -69,9 +69,7 @@ class DeleteEntryType
         }
         
         // Attempt to delete the entry type
-        if (!$entriesService->deleteEntryType($entryType)) {
-            throw new ModelSaveException($entryType);
-        }
+        throw_unless($entriesService->deleteEntryType($entryType), ModelSaveException::class, $entryType);
         
         $message = "Entry type '{$entryTypeInfo['name']}' was successfully deleted.";
         if ($usageStats['total'] > 0) {

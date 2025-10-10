@@ -146,9 +146,7 @@ class UpdateFieldLayout
         $fieldLayout->setTabs($newTabs);
 
         // Save the field layout
-        if (! $fieldsService->saveLayout($fieldLayout)) {
-            throw new ModelSaveException($fieldLayout);
-        }
+        throw_unless($fieldsService->saveLayout($fieldLayout), ModelSaveException::class, $fieldLayout);
 
         // Get section information for edit URL
         $section = null;

@@ -62,11 +62,7 @@ class DeleteField
         
         // Perform the deletion
         try {
-            $success = $fieldsService->deleteField($field);
-            
-            if (!$success) {
-                throw new ModelSaveException($field);
-            }
+            throw_unless($fieldsService->deleteField($field), ModelSaveException::class, $field);
         } catch (\Exception $e) {
             throw new \Exception("Failed to delete field: " . $e->getMessage());
         }

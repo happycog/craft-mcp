@@ -201,9 +201,7 @@ class UpdateSection
         }
 
         // Validate and save section
-        if (!$sectionsService->saveSection($section)) {
-            throw new ModelSaveException($section);
-        }
+        throw_unless($sectionsService->saveSection($section), ModelSaveException::class, $section);
 
         // Update entry type associations if provided
         if ($entryTypeIds !== null) {
@@ -250,9 +248,7 @@ class UpdateSection
         $section->setEntryTypes($entryTypes);
 
         // Save the section to persist the entry type associations
-        if (!$sectionsService->saveSection($section)) {
-            throw new ModelSaveException($section);
-        }
+        throw_unless($sectionsService->saveSection($section), ModelSaveException::class, $section);
     }
 
     private function validateTypeChange(Section $section, string $newType): void

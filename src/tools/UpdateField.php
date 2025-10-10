@@ -112,9 +112,7 @@ class UpdateField
         $field = $fieldsService->createField($fieldConfig);
         
         // Save the field
-        if (!$fieldsService->saveField($field)) {
-            throw new ModelSaveException($field);
-        }
+        throw_unless($fieldsService->saveField($field), ModelSaveException::class, $field);
         
         // Generate control panel URL
         $editUrl = UrlHelper::cpUrl('settings/fields/edit/' . $field->id);

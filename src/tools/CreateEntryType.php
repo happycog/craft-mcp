@@ -66,7 +66,7 @@ class CreateEntryType
 
         // Validate handle is unique across entry types
         $existingEntryType = $entriesService->getEntryTypeByHandle($handle);
-        throw_if($existingEntryType, \InvalidArgumentException::class, "An entry type with handle '{$handle}' already exists.");
+        throw_if($existingEntryType !== null, \InvalidArgumentException::class, "An entry type with handle '{$handle}' already exists.");
 
         // Map translation method
         $titleTranslationMethodConstant = $this->getTranslationMethodConstant($titleTranslationMethod);
@@ -98,9 +98,7 @@ class CreateEntryType
         }
 
         // Save the entry type
-        if (! $entriesService->saveEntryType($entryType)) {
-            throw new ModelSaveException($entryType);
-        }
+        throw_unless($entriesService->saveEntryType($entryType), ModelSaveException::class, $entryType);
 
         // Generate control panel URL
         $editUrl = UrlHelper::cpUrl('settings/entry-types/' . $entryType->id);

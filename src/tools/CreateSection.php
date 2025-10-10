@@ -218,9 +218,7 @@ class CreateSection
         // Save the section
         $sectionsService = Craft::$app->getEntries();
 
-        if (!$sectionsService->saveSection($section)) {
-            throw new ModelSaveException($section);
-        }
+        throw_unless($sectionsService->saveSection($section), ModelSaveException::class, $section);
 
         // Generate control panel URL
         $editUrl = UrlHelper::cpUrl('settings/sections/' . $section->id);

@@ -4,6 +4,7 @@ namespace happycog\craftmcp\tools;
 
 use Craft;
 use craft\elements\Entry;
+use happycog\craftmcp\exceptions\ModelSaveException;
 use PhpMcp\Schema\CallToolRequest;
 use PhpMcp\Schema\CallToolResult;
 use PhpMcp\Server\Attributes\McpTool;
@@ -91,9 +92,7 @@ class DeleteSection
         ];
 
         // Delete the section
-        if (!$sectionsService->deleteSection($section)) {
-            throw new \RuntimeException("Failed to delete section '{$section->name}'");
-        }
+        throw_unless($sectionsService->deleteSection($section), ModelSaveException::class, $section);
 
         return $sectionInfo;
     }

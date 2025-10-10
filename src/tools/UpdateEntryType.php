@@ -113,9 +113,7 @@ class UpdateEntryType
         }
 
         // Save the updated entry type
-        if (!$entriesService->saveEntryType($entryType)) {
-            throw new ModelSaveException($entryType);
-        }
+        throw_unless($entriesService->saveEntryType($entryType), ModelSaveException::class, $entryType);
 
         // Generate control panel URL
         $entryTypeId = $entryType->id;
