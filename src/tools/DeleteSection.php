@@ -21,13 +21,14 @@ class DeleteSection
         **WARNING**: Deleting a section that has existing entries will cause data loss. The tool will
         provide usage statistics and require confirmation for sections with existing content.
 
-        Use the force parameter to delete sections that have existing entries. This action cannot be undone.
+        You _must_ get the user's approval to use the force parameter to delete sections that have existing
+        entries. This action cannot be undone.
         END
     )]
     public function delete(
         #[Schema(type: 'integer', description: 'The ID of the section to delete')]
         int $sectionId,
-        
+
         #[Schema(type: 'boolean', description: 'Force deletion even if entries exist (default: false)')]
         bool $force = false
     ): array
