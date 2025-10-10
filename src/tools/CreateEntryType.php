@@ -61,15 +61,11 @@ class CreateEntryType
         $entriesService = Craft::$app->getEntries();
 
         // Generate handle if not provided
-        if (!$handle) {
-            $handle = StringHelper::toHandle($name);
-        }
+        $handle ??= StringHelper::toHandle($name);
 
         // Validate handle is unique across entry types
         $existingEntryType = $entriesService->getEntryTypeByHandle($handle);
-        if ($existingEntryType) {
-            throw new \InvalidArgumentException("An entry type with handle '{$handle}' already exists.");
-        }
+        throw_if($existingEntryType, \InvalidArgumentException::class, "An entry type with handle '{$handle}' already exists.");
 
         // Map translation method
         $titleTranslationMethodConstant = $this->getTranslationMethodConstant($titleTranslationMethod);
@@ -101,7 +97,7 @@ class CreateEntryType
         }
 
         // Save the entry type
-        if (!$entriesService->saveEntryType($entryType)) {
+        if (! $entriesService->saveEntryType($entryType)) {
             $errors = $entryType->getErrors();
             $errorMessages = [];
             foreach ($errors as $attribute => $attributeErrors) {
@@ -117,14 +113,10 @@ class CreateEntryType
 
         // Refresh the entry type from database to get the actual saved values
         $entryTypeId = $entryType->id;
-        if ($entryTypeId === null) {
-            throw new \RuntimeException("Entry type was saved but has no ID");
-        }
+        throw_if($entryTypeId === null, \RuntimeException::class, "Entry type was saved but has no ID");
 
         $savedEntryType = $entriesService->getEntryTypeById($entryTypeId);
-        if (!$savedEntryType instanceof EntryType) {
-            throw new \RuntimeException("Failed to retrieve saved entry type with ID {$entryTypeId}");
-        }
+        throw_unless($savedEntryType instanceof EntryType, \RuntimeException::class, "Failed to retrieve saved entry type with ID {$entryTypeId}");
 
         return [
             '_notes' => 'The entry type was successfully created. You can further configure it in the Craft control panel.',
@@ -155,9 +147,7 @@ class CreateEntryType
             'custom' => \craft\base\Field::TRANSLATION_METHOD_CUSTOM,
         ];
 
-        if (!isset($methodMap[$method])) {
-            throw new \InvalidArgumentException("Invalid translation method '{$method}'. Must be one of: " . implode(', ', array_keys($methodMap)));
-        }
+        throw_unless(isset($methodMap[$method]), \InvalidArgumentException::class, "Invalid translation method '{$method}'. Must be one of: " . implode(', ', array_keys($methodMap)));
 
         return $methodMap[$method];
     }
@@ -188,9 +178,7 @@ class CreateEntryType
         ];
 
         $lowerColor = strtolower($color);
-        if (!isset($colorMap[$lowerColor])) {
-            throw new \InvalidArgumentException("Invalid color '{$color}'. Must be one of: " . implode(', ', array_keys($colorMap)));
-        }
+        throw_unless(isset($colorMap[$lowerColor]), \InvalidArgumentException::class, "Invalid color '{$color}'. Must be one of: " . implode(', ', array_keys($colorMap)));
 
         return $colorMap[$lowerColor];
     }
