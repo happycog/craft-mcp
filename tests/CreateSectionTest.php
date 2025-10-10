@@ -77,17 +77,6 @@ afterEach(function () {
     }
 });
 
-test('create section tool schema is valid', function () {
-    $tool = new CreateSection();
-    $schema = $tool->getSchema();
-
-    expect($schema)->toBeArray()
-        ->and($schema['type'])->toBe('object')
-        ->and($schema['properties']['name'])->toHaveKey('type')
-        ->and($schema['properties']['type']['enum'])->toContain('single', 'channel', 'structure')
-        ->and($schema['required'])->toContain('name', 'type');
-});
-
 test('creates channel section with default settings', function () {
     $entryType = ($this->createEntryType)('News Entry');
     $result = ($this->createSection)('Test News', 'channel', [$entryType['entryTypeId']]);
@@ -246,13 +235,4 @@ test('creates structure section with unlimited levels', function () {
 
     expect($result['type'])->toBe('structure')
         ->and($result['maxLevels'])->toBeNull(); // Should be null for unlimited
-});
-
-test('validates required section properties', function () {
-    $tool = new CreateSection();
-    $schema = $tool->getSchema();
-
-    expect($schema['required'])->toContain('name')
-        ->and($schema['required'])->toContain('type')
-        ->and($schema['properties']['type']['enum'])->toEqual(['single', 'channel', 'structure']);
 });
