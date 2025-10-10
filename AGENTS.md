@@ -420,6 +420,26 @@ test('endpoint returns valid response', function () {
 - HTTP transport handles JSON-RPC error responses automatically
 - Session errors are logged and cleaned up gracefully
 
+### ModelSaveException Pattern
+- **PREFERRED**: Use `throw_unless` helper with ModelSaveException for all Craft model save/delete operations:
+  ```php
+  // Import ModelSaveException in tool files
+  use happycog\craftmcp\exceptions\ModelSaveException;
+  
+  // PREFERRED: Concise throw_unless pattern
+  throw_unless($entriesService->saveEntryType($entryType), ModelSaveException::class, $entryType);
+  throw_unless($fieldsService->saveField($field), ModelSaveException::class, $field);
+  throw_unless($sectionsService->deleteSection($section), ModelSaveException::class, $section);
+  
+  // ANTI-PATTERN: Verbose if/throw blocks (avoid these)
+  if (!$entriesService->saveEntryType($entryType)) {
+      throw new ModelSaveException($entryType);
+  }
+  ```
+- **Automatic Context Generation**: ModelSaveException automatically generates context messages from model class names (e.g., "Failed to save entry type", "Failed to save field")
+- **Consistent Error Handling**: All save/delete operations should use this pattern for consistent error messages across the MCP tools
+- **Type Safety**: Pattern maintains PHPStan level max compliance with proper type checking
+
 ### Helper Functions
 - **Laravel-style Helpers**: The project includes `throw_if()` and `throw_unless()` helpers from Laravel for cleaner conditional error handling
 - **Location**: `src/helpers/functions.php` (autoloaded via composer.json)
