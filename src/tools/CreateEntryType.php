@@ -64,10 +64,6 @@ class CreateEntryType
         // Generate handle if not provided
         $handle ??= StringHelper::toHandle($name);
 
-        // Validate handle is unique across entry types
-        $existingEntryType = $entriesService->getEntryTypeByHandle($handle);
-        throw_if($existingEntryType !== null, \InvalidArgumentException::class, "An entry type with handle '{$handle}' already exists.");
-
         // Map translation method
         $titleTranslationMethodConstant = $this->getTranslationMethodConstant($titleTranslationMethod);
 
