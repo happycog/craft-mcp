@@ -67,12 +67,6 @@ class CreateEntryType
         // Map translation method
         $titleTranslationMethodConstant = $this->getTranslationMethodConstant($titleTranslationMethod);
 
-        // Map color string to enum if provided
-        $colorEnum = null;
-        if ($color) {
-            $colorEnum = $this->getColorEnum($color);
-        }
-
         // Create entry type configuration
         $entryType = new EntryType();
         $entryType->name = $name;
@@ -83,7 +77,7 @@ class CreateEntryType
         $entryType->titleTranslationKeyFormat = $titleTranslationKeyFormat;
         $entryType->titleFormat = $titleFormat;
         $entryType->icon = $icon;
-        $entryType->color = $colorEnum;
+        $entryType->color = $color ? Color::tryFrom($color) : null;
 
         // If hasTitleField is true, ensure the field layout includes the title field
         if ($hasTitleField) {
@@ -138,36 +132,5 @@ class CreateEntryType
         throw_unless(isset($methodMap[$method]), \InvalidArgumentException::class, "Invalid translation method '{$method}'. Must be one of: " . implode(', ', array_keys($methodMap)));
 
         return $methodMap[$method];
-    }
-
-    private function getColorEnum(string $color): Color
-    {
-        $colorMap = [
-            'red' => Color::Red,
-            'orange' => Color::Orange,
-            'amber' => Color::Amber,
-            'yellow' => Color::Yellow,
-            'lime' => Color::Lime,
-            'green' => Color::Green,
-            'emerald' => Color::Emerald,
-            'teal' => Color::Teal,
-            'cyan' => Color::Cyan,
-            'sky' => Color::Sky,
-            'blue' => Color::Blue,
-            'indigo' => Color::Indigo,
-            'violet' => Color::Violet,
-            'purple' => Color::Purple,
-            'fuchsia' => Color::Fuchsia,
-            'pink' => Color::Pink,
-            'rose' => Color::Rose,
-            'white' => Color::White,
-            'gray' => Color::Gray,
-            'black' => Color::Black,
-        ];
-
-        $lowerColor = strtolower($color);
-        throw_unless(isset($colorMap[$lowerColor]), \InvalidArgumentException::class, "Invalid color '{$color}'. Must be one of: " . implode(', ', array_keys($colorMap)));
-
-        return $colorMap[$lowerColor];
     }
 }
