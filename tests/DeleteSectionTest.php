@@ -45,13 +45,15 @@ beforeEach(function () {
 
 test('delete section tool schema is valid', function () {
     $tool = new DeleteSection();
-    $schema = $tool->getSchema();
-
-    expect($schema)->toBeArray()
-        ->and($schema['type'])->toBe('object')
-        ->and($schema['properties'])->toHaveKey('sectionId')
-        ->and($schema['properties'])->toHaveKey('force')
-        ->and($schema['required'])->toContain('sectionId');
+    $reflection = new ReflectionClass($tool);
+    $method = $reflection->getMethod('delete');
+    $attributes = $method->getAttributes(\PhpMcp\Server\Attributes\McpTool::class);
+    
+    expect($attributes)->toHaveCount(1);
+    
+    // Verify the McpTool attribute has the correct name
+    $mcpToolAttribute = $attributes[0]->newInstance();
+    expect($mcpToolAttribute->name)->toBe('delete_section');
 });
 
 test('deletes empty section successfully', function () {

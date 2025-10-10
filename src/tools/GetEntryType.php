@@ -6,56 +6,20 @@ namespace happycog\craftmcp\tools;
 
 use Craft;
 use craft\models\EntryType;
-use PhpMcp\Schema\CallToolRequest;
-use PhpMcp\Schema\CallToolResult;
-use PhpMcp\Schema\Tool;
 use PhpMcp\Server\Attributes\McpTool;
 use PhpMcp\Server\Attributes\Schema;
 
 class GetEntryType
 {
-    public function getSchema(): Tool
-    {
-        return Tool::make(
-            name: 'craft_get_entry_type',
-            description: 'Get detailed information about a specific entry type by ID. Returns entry type properties, field layout information, and section details.',
-            inputSchema: [
-                'type' => 'object',
-                'properties' => [
-                    'entryTypeId' => [
-                        'type' => 'number',
-                        'description' => 'The ID of the entry type to retrieve'
-                    ]
-                ],
-                'required' => ['entryTypeId']
-            ]
-        );
-    }
-
-    /** @phpstan-ignore-next-line */
-    public function execute(CallToolRequest $request): CallToolResult
-    {
-        /** @phpstan-ignore-next-line */
-        $args = $request->params->arguments;
-        $entryTypeId = (int) $args['entryTypeId'];
-
-        $result = $this->get($entryTypeId);
-
-        /** @phpstan-ignore-next-line */
-        return CallToolResult::make(
-            content: [['type' => 'text', 'text' => json_encode($result, JSON_PRETTY_PRINT)]]
-        );
-    }
-
     /**
      * @return array<string, mixed>
      */
     #[McpTool(
-        name: 'craft_get_entry_type',
+        name: 'get_entry_type',
         description: 'Get detailed information about a specific entry type by ID. Returns entry type properties, field layout information, and section details.'
     )]
     public function get(
-        #[Schema(type: 'number')]
+        #[Schema(type: 'number', description: 'The ID of the entry type to retrieve')]
         int $entryTypeId
     ): array
     {

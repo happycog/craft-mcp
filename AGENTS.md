@@ -176,7 +176,7 @@ class ExampleTool
      * @return array<string, mixed>
      */
     #[McpTool(
-        name: 'example_tool',
+        name: 'example_tool', // Use snake_case, NO craft_ prefix
         description: <<<'END'
         Example tool description that supports multiple lines.
         
@@ -326,6 +326,7 @@ test('endpoint returns valid response', function () {
 ## Important Notes for Future Agents
 
 ### MCP Tool Development Guidelines
+- **Tool Naming Convention**: Tool names should use snake_case and NOT include a `craft_` prefix. Examples: `create_entry`, `get_sections`, `update_field` (NOT `craft_create_entry`, `craft_get_sections`, etc.)
 - **Control Panel Links**: All tools that create, update, or modify Craft content MUST include explicit instructions in their descriptions to link users back to the control panel for review
 - **Pattern**: "After [action] always link the user back to the entry in the Craft control panel so they can review the changes in the context of the Craft UI."
 - **Implementation**: Use `ElementHelper::elementEditorUrl($entry)` to generate control panel URLs consistently across all tools

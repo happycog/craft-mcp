@@ -16,7 +16,7 @@ class GetEntryTypes
      * @return array<string, mixed>
      */
     #[McpTool(
-        name: 'craft_get_entry_types',
+        name: 'get_entry_types',
         description: 'Get a list of all entry types in Craft CMS. This is helpful for understanding the content structure and discovering available entry type IDs for creating entries.'
     )]
     public function getAll(

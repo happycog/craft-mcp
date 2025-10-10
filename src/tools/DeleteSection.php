@@ -5,9 +5,8 @@ namespace happycog\craftmcp\tools;
 use Craft;
 use craft\elements\Entry;
 use happycog\craftmcp\exceptions\ModelSaveException;
-use PhpMcp\Schema\CallToolRequest;
-use PhpMcp\Schema\CallToolResult;
 use PhpMcp\Server\Attributes\McpTool;
+use PhpMcp\Server\Attributes\Schema;
 
 class DeleteSection
 {
@@ -25,29 +24,13 @@ class DeleteSection
         Use the force parameter to delete sections that have existing entries. This action cannot be undone.
         END
     )]
-    public function getSchema(): array
-    {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'sectionId' => [
-                    'type' => 'integer',
-                    'description' => 'The ID of the section to delete'
-                ],
-                'force' => [
-                    'type' => 'boolean',
-                    'default' => false,
-                    'description' => 'Force deletion even if entries exist (default: false)'
-                ]
-            ],
-            'required' => ['sectionId']
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function delete(int $sectionId, bool $force = false): array
+    public function delete(
+        #[Schema(type: 'integer', description: 'The ID of the section to delete')]
+        int $sectionId,
+        
+        #[Schema(type: 'boolean', description: 'Force deletion even if entries exist (default: false)')]
+        bool $force = false
+    ): array
     {
         $sectionsService = Craft::$app->getEntries();
 

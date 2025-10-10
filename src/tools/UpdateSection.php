@@ -8,13 +8,15 @@ use craft\helpers\UrlHelper;
 use craft\models\Section;
 use craft\models\Section_SiteSettings;
 use happycog\craftmcp\exceptions\ModelSaveException;
-use PhpMcp\Schema\CallToolRequest;
-use PhpMcp\Schema\CallToolResult;
 use PhpMcp\Server\Attributes\McpTool;
+use PhpMcp\Server\Attributes\Schema;
 
 class UpdateSection
 {
+
     /**
+     * @param array<int>|null $entryTypeIds
+     * @param array<string, mixed>|null $siteSettingsData
      * @return array<string, mixed>
      */
     #[McpTool(
@@ -32,91 +34,48 @@ class UpdateSection
         control panel so they can review the changes in the context of the Craft UI.
         END
     )]
-    public function getSchema(): array
-    {
-        return [
+    public function update(
+        #[Schema(type: 'integer', description: 'The ID of the section to update')]
+        int $sectionId,
+        
+        #[Schema(type: 'string', description: 'The display name for the section')]
+        ?string $name = null,
+        
+        #[Schema(type: 'string', description: 'The section handle (machine-readable name)')]
+        ?string $handle = null,
+        
+        #[Schema(type: 'string', description: 'Section type: single, channel, or structure. Type changes have restrictions based on existing data.', enum: ['single', 'channel', 'structure'])]
+        ?string $type = null,
+        
+        #[Schema(type: 'array', description: 'Array of entry type IDs to assign to this section. Replaces existing associations.', items: ['type' => 'integer'])]
+        ?array $entryTypeIds = null,
+        
+        #[Schema(type: 'boolean', description: 'Whether to enable entry versioning for this section')]
+        ?bool $enableVersioning = null,
+        
+        #[Schema(type: 'string', description: 'How content propagates across sites', enum: ['all', 'siteGroup', 'language', 'custom', 'none'])]
+        ?string $propagationMethod = null,
+        
+        #[Schema(type: 'integer', description: 'Maximum hierarchy levels (only for structure sections). Null/0 for unlimited.')]
+        ?int $maxLevels = null,
+        
+        #[Schema(type: 'string', description: 'Where new entries are placed by default (only for structure sections)', enum: ['beginning', 'end'])]
+        ?string $defaultPlacement = null,
+        
+        #[Schema(type: 'integer', description: 'Maximum number of authors that can be assigned to entries in this section')]
+        ?int $maxAuthors = null,
+        
+        #[Schema(type: 'array', description: 'Site-specific settings for multi-site installations', items: [
             'type' => 'object',
             'properties' => [
-                'sectionId' => [
-                    'type' => 'integer',
-                    'description' => 'The ID of the section to update'
-                ],
-                'name' => [
-                    'type' => 'string',
-                    'description' => 'The display name for the section'
-                ],
-                'handle' => [
-                    'type' => 'string',
-                    'description' => 'The section handle (machine-readable name)'
-                ],
-                'type' => [
-                    'type' => 'string',
-                    'enum' => ['single', 'channel', 'structure'],
-                    'description' => 'Section type: single, channel, or structure. Type changes have restrictions based on existing data.'
-                ],
-                'entryTypeIds' => [
-                    'type' => 'array',
-                    'items' => ['type' => 'integer'],
-                    'description' => 'Array of entry type IDs to assign to this section. Replaces existing associations.'
-                ],
-                'enableVersioning' => [
-                    'type' => 'boolean',
-                    'description' => 'Whether to enable entry versioning for this section'
-                ],
-                'propagationMethod' => [
-                    'type' => 'string',
-                    'enum' => ['all', 'siteGroup', 'language', 'custom', 'none'],
-                    'description' => 'How content propagates across sites'
-                ],
-                'maxLevels' => [
-                    'type' => 'integer',
-                    'description' => 'Maximum hierarchy levels (only for structure sections). Null/0 for unlimited.'
-                ],
-                'defaultPlacement' => [
-                    'type' => 'string',
-                    'enum' => ['beginning', 'end'],
-                    'description' => 'Where new entries are placed by default (only for structure sections)'
-                ],
-                'maxAuthors' => [
-                    'type' => 'integer',
-                    'description' => 'Maximum number of authors that can be assigned to entries in this section'
-                ],
-                'siteSettings' => [
-                    'type' => 'array',
-                    'items' => [
-                        'type' => 'object',
-                        'properties' => [
-                            'siteId' => ['type' => 'integer', 'description' => 'Site ID'],
-                            'enabledByDefault' => ['type' => 'boolean', 'description' => 'Enable entries by default'],
-                            'hasUrls' => ['type' => 'boolean', 'description' => 'Whether entries have URLs'],
-                            'uriFormat' => ['type' => 'string', 'description' => 'URI format pattern'],
-                            'template' => ['type' => 'string', 'description' => 'Template path for rendering']
-                        ],
-                        'required' => ['siteId']
-                    ],
-                    'description' => 'Site-specific settings for multi-site installations'
-                ]
+                'siteId' => ['type' => 'integer', 'description' => 'Site ID'],
+                'enabledByDefault' => ['type' => 'boolean', 'description' => 'Enable entries by default'],
+                'hasUrls' => ['type' => 'boolean', 'description' => 'Whether entries have URLs'],
+                'uriFormat' => ['type' => 'string', 'description' => 'URI format pattern'],
+                'template' => ['type' => 'string', 'description' => 'Template path for rendering']
             ],
-            'required' => ['sectionId']
-        ];
-    }
-
-    /**
-     * @param array<string, mixed> $entryTypeIds
-     * @param array<string, mixed>|null $siteSettingsData
-     * @return array<string, mixed>
-     */
-    public function update(
-        int $sectionId,
-        ?string $name = null,
-        ?string $handle = null,
-        ?string $type = null,
-        ?array $entryTypeIds = null,
-        ?bool $enableVersioning = null,
-        ?string $propagationMethod = null,
-        ?int $maxLevels = null,
-        ?string $defaultPlacement = null,
-        ?int $maxAuthors = null,
+            'required' => ['siteId']
+        ])]
         ?array $siteSettingsData = null
     ): array {
         $sectionsService = Craft::$app->getEntries();
@@ -300,83 +259,5 @@ class UpdateSection
             Section::TYPE_STRUCTURE => "{$handle}/{slug}",
             default => "{$handle}/{slug}"
         };
-    }
-
-    /** @phpstan-ignore-next-line */
-    public function execute(CallToolRequest $request): CallToolResult
-    {
-        /** @phpstan-ignore-next-line */
-        $args = $request->params->arguments;
-
-        // Extract and validate arguments
-        $sectionId = $args['sectionId'] ?? null;
-        throw_unless(is_int($sectionId), 'sectionId is required and must be an integer');
-
-        // Extract optional parameters
-        $name = $args['name'] ?? null;
-        $handle = $args['handle'] ?? null;
-        $type = $args['type'] ?? null;
-        $entryTypeIds = $args['entryTypeIds'] ?? null;
-        $enableVersioning = $args['enableVersioning'] ?? null;
-        $propagationMethod = $args['propagationMethod'] ?? null;
-        $maxLevels = $args['maxLevels'] ?? null;
-        $defaultPlacement = $args['defaultPlacement'] ?? null;
-        $maxAuthors = $args['maxAuthors'] ?? null;
-        $maxAuthorsProvided = array_key_exists('maxAuthors', $args);
-        $siteSettingsData = $args['siteSettings'] ?? null;
-
-        try {
-            // Special handling for maxAuthors to detect explicit null
-            if (array_key_exists('maxAuthors', $args)) {
-                $result = $this->update(
-                    sectionId: $sectionId,
-                    name: $name,
-                    handle: $handle,
-                    type: $type,
-                    entryTypeIds: $entryTypeIds,
-                    enableVersioning: $enableVersioning,
-                    propagationMethod: $propagationMethod,
-                    maxLevels: $maxLevels,
-                    defaultPlacement: $defaultPlacement,
-                    maxAuthors: $maxAuthors,
-                    siteSettingsData: $siteSettingsData
-                );
-            } else {
-                $result = $this->update(
-                    sectionId: $sectionId,
-                    name: $name,
-                    handle: $handle,
-                    type: $type,
-                    entryTypeIds: $entryTypeIds,
-                    enableVersioning: $enableVersioning,
-                    propagationMethod: $propagationMethod,
-                    maxLevels: $maxLevels,
-                    defaultPlacement: $defaultPlacement,
-                    siteSettingsData: $siteSettingsData
-                );
-            }
-
-            /** @phpstan-ignore-next-line */
-            return CallToolResult::make(
-                content: [[
-                    'type' => 'text',
-                    'text' => "Section '" . $result['name'] . "' updated successfully!\n\n" .
-                              "Section Details:\n" .
-                              "- ID: " . $result['sectionId'] . "\n" .
-                              "- Name: " . $result['name'] . "\n" .
-                              "- Handle: " . $result['handle'] . "\n" .
-                              "- Type: " . $result['type'] . "\n" .
-                              "- Propagation Method: " . $result['propagationMethod'] . "\n" .
-                              ($result['maxLevels'] ? "- Max Levels: " . $result['maxLevels'] . "\n" : ($result['type'] === Section::TYPE_STRUCTURE ? "- Max Levels: Unlimited\n" : '')) .
-                              ($result['editUrl'] ? "\nEdit section in Craft control panel: " . $result['editUrl'] : '') .
-                              "\n\nNote: Entry type associations and site settings have been updated as specified."
-                ]]
-            );
-        } catch (\Exception $e) {
-            /** @phpstan-ignore-next-line */
-            return CallToolResult::make(
-                content: [['type' => 'text', 'text' => $e->getMessage()]]
-            );
-        }
     }
 }

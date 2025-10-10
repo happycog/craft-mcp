@@ -20,7 +20,7 @@ class CreateSection
      * @return array<string, mixed>
      */
     #[McpTool(
-        name: 'craft_create_section',
+        name: 'create_section',
         description: <<<'END'
         Create a new section in Craft CMS. Sections define the structural organization of content with different types:
         - Single: One entry per section (e.g., homepage, about page)
@@ -59,7 +59,7 @@ class CreateSection
         ?int $maxLevels = null,
 
         #[Schema(type: 'string', enum: ['beginning', 'end'], description: 'Where new entries are placed by default (only for structure sections)')]
-        string $defaultPlacement = Section::DEFAULT_PLACEMENT_END,
+        string $defaultPlacement = 'end',
 
         #[Schema(type: 'integer', description: 'Maximum number of authors that can be assigned to entries in this section')]
         ?int $maxAuthors = null,
@@ -111,11 +111,9 @@ class CreateSection
                 $section->maxLevels = $maxLevels;
             }
 
-            // Validate and set default placement
-            if (in_array($defaultPlacement, [Section::DEFAULT_PLACEMENT_BEGINNING, Section::DEFAULT_PLACEMENT_END])) {
+            if ($defaultPlacement !== null) {
+                throw_unless(in_array($defaultPlacement, ['beginning', 'end'], true), 'defaultPlacement must be "beginning" or "end"');
                 $section->defaultPlacement = $defaultPlacement;
-            } else {
-                $section->defaultPlacement = Section::DEFAULT_PLACEMENT_END;
             }
         }
 
