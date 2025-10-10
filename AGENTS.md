@@ -301,6 +301,9 @@ test('endpoint returns valid response', function () {
 - **API Discovery**: When working with undocumented Craft features, examine the core Element classes and test property access
 - **Control Panel URLs**: Use `Craft::$app->getConfig()->general->cpUrl` for generating edit URLs
 - **Element Queries**: Draft elements have special query behaviors - they reference canonical entries via `canonicalId`
+- **EntryType Properties**: EntryType objects in Craft 5.x DO NOT have `sectionId`, `dateCreated`, or `dateUpdated` properties
+- **EntryType-Section Relationship**: To find which section contains an entry type, iterate through all sections and check their `getEntryTypes()` method
+- **Standalone Entry Types**: Entry types can exist independently without being associated with a section (useful for Matrix fields)
 
 ### Transport Architecture
 - **Primary Transport**: StreamableHttpServerTransport for modern MCP clients
@@ -325,6 +328,32 @@ test('endpoint returns valid response', function () {
 - Respects Craft's permissions and user context when available
 
 ### Draft System Implementation (Added in 005-add-draft-support.md)
+- **CRITICAL**: Craft 5.x uses specific property names for draft metadata
+- Use `$draft->draftName`, `$draft->draftNotes`, `$draft->isProvisionalDraft` (NOT `revisionName`/`revisionNotes`)
+- Draft creation: `Craft::$app->getDrafts()->createDraft($canonicalEntry, $creatorId, $name, $notes, $attributes)`
+- Control panel URLs: `Craft::$app->getConfig()->general->cpUrl . '/entries/' . $entry->id`
+- **Testing Challenge**: RefreshesDatabase trait rolls back transactions, preventing database verification in tests
+- **Solution**: Test return values and tool execution rather than database persistence in test environment
+
+### Entry Type Management (Added in 010-section-entry-type-management.md)
+- **CRITICAL**: EntryType objects in Craft 5.x DO NOT have `sectionId` property
+- **Section Discovery**: To find which section contains an entry type, use this pattern:
+  ```php
+  $section = null;
+  $sections = $entriesService->getAllSections();
+  foreach ($sections as $sectionCandidate) {
+      foreach ($sectionCandidate->getEntryTypes() as $sectionEntryType) {
+          if ($sectionEntryType->id === $entryType->id) {
+              $section = $sectionCandidate;
+              break 2; // Break out of both loops
+          }
+      }
+  }
+  ```
+- **Missing Properties**: EntryType objects also lack `dateCreated` and `dateUpdated` properties
+- **Standalone Entry Types**: Entry types can exist without being associated with sections (commonly used for Matrix fields)
+- **Control Panel URLs**: Section-dependent edit URLs should be null when entry type isn't associated with a section
+- **Testing Pattern**: When testing tools that work with entry types created via CreateEntryType, expect section to be null initially
 - **CRITICAL**: Craft 5.x uses specific property names for draft metadata
 - Use `$draft->draftName`, `$draft->draftNotes`, `$draft->isProvisionalDraft` (NOT `revisionName`/`revisionNotes`)
 - Draft creation: `Craft::$app->getDrafts()->createDraft($canonicalEntry, $creatorId, $name, $notes, $attributes)`
