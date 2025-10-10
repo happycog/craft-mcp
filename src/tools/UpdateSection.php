@@ -77,6 +77,10 @@ class UpdateSection
                     'enum' => ['beginning', 'end'],
                     'description' => 'Where new entries are placed by default (only for structure sections)'
                 ],
+                'maxAuthors' => [
+                    'type' => 'integer',
+                    'description' => 'Maximum number of authors that can be assigned to entries in this section'
+                ],
                 'siteSettings' => [
                     'type' => 'array',
                     'items' => [
@@ -112,6 +116,7 @@ class UpdateSection
         ?string $propagationMethod = null,
         ?int $maxLevels = null,
         ?string $defaultPlacement = null,
+        ?int $maxAuthors = null,
         ?array $siteSettingsData = null
     ): array {
         $sectionsService = Craft::$app->getEntries();
@@ -144,6 +149,10 @@ class UpdateSection
 
         if ($enableVersioning !== null) {
             $section->enableVersioning = $enableVersioning;
+        }
+
+        if ($maxAuthors !== null) {
+            $section->maxAuthors = $maxAuthors;
         }
 
         if ($propagationMethod !== null) {
@@ -225,6 +234,7 @@ class UpdateSection
             'type' => $section->type,
             'propagationMethod' => $section->propagationMethod->value,
             'maxLevels' => $section->type === Section::TYPE_STRUCTURE ? ($section->maxLevels ?: null) : null,
+            'maxAuthors' => $section->maxAuthors,
             'editUrl' => $editUrl,
         ];
     }
@@ -311,21 +321,40 @@ class UpdateSection
         $propagationMethod = $args['propagationMethod'] ?? null;
         $maxLevels = $args['maxLevels'] ?? null;
         $defaultPlacement = $args['defaultPlacement'] ?? null;
+        $maxAuthors = $args['maxAuthors'] ?? null;
+        $maxAuthorsProvided = array_key_exists('maxAuthors', $args);
         $siteSettingsData = $args['siteSettings'] ?? null;
 
         try {
-            $result = $this->update(
-                sectionId: $sectionId,
-                name: $name,
-                handle: $handle,
-                type: $type,
-                entryTypeIds: $entryTypeIds,
-                enableVersioning: $enableVersioning,
-                propagationMethod: $propagationMethod,
-                maxLevels: $maxLevels,
-                defaultPlacement: $defaultPlacement,
-                siteSettingsData: $siteSettingsData
-            );
+            // Special handling for maxAuthors to detect explicit null
+            if (array_key_exists('maxAuthors', $args)) {
+                $result = $this->update(
+                    sectionId: $sectionId,
+                    name: $name,
+                    handle: $handle,
+                    type: $type,
+                    entryTypeIds: $entryTypeIds,
+                    enableVersioning: $enableVersioning,
+                    propagationMethod: $propagationMethod,
+                    maxLevels: $maxLevels,
+                    defaultPlacement: $defaultPlacement,
+                    maxAuthors: $maxAuthors,
+                    siteSettingsData: $siteSettingsData
+                );
+            } else {
+                $result = $this->update(
+                    sectionId: $sectionId,
+                    name: $name,
+                    handle: $handle,
+                    type: $type,
+                    entryTypeIds: $entryTypeIds,
+                    enableVersioning: $enableVersioning,
+                    propagationMethod: $propagationMethod,
+                    maxLevels: $maxLevels,
+                    defaultPlacement: $defaultPlacement,
+                    siteSettingsData: $siteSettingsData
+                );
+            }
 
             /** @phpstan-ignore-next-line */
             return CallToolResult::make(

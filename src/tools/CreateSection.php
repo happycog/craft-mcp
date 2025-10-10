@@ -61,6 +61,9 @@ class CreateSection
         #[Schema(type: 'string', enum: ['beginning', 'end'], description: 'Where new entries are placed by default (only for structure sections)')]
         string $defaultPlacement = Section::DEFAULT_PLACEMENT_END,
 
+        #[Schema(type: 'integer', description: 'Maximum number of authors that can be assigned to entries in this section')]
+        ?int $maxAuthors = null,
+
         #[Schema(type: 'array', description: 'Site-specific settings. If not provided, section will be enabled for all sites with default settings.')]
         ?array $siteSettings = null
     ): array {
@@ -87,6 +90,11 @@ class CreateSection
             'enableVersioning' => $enableVersioning,
             'propagationMethod' => $propagationMethod,
         ]);
+
+        // Set maxAuthors if provided
+        if ($maxAuthors !== null) {
+            $section->maxAuthors = $maxAuthors;
+        }
 
         // Set entry types
         $entryTypes = [];
@@ -162,6 +170,7 @@ class CreateSection
             'type' => $section->type,
             'propagationMethod' => $section->propagationMethod->value,
             'maxLevels' => $section->type === Section::TYPE_STRUCTURE ? ($section->maxLevels ?: null) : null,
+            'maxAuthors' => $section->maxAuthors,
             'editUrl' => $editUrl,
         ];
     }

@@ -49,6 +49,7 @@ beforeEach(function () {
             propagationMethod: $options['propagationMethod'] ?? Section::PROPAGATION_METHOD_ALL,
             maxLevels: $options['maxLevels'] ?? null,
             defaultPlacement: $options['defaultPlacement'] ?? Section::DEFAULT_PLACEMENT_END,
+            maxAuthors: $options['maxAuthors'] ?? null,
             siteSettings: $options['siteSettings'] ?? null
         );
         
@@ -235,4 +236,41 @@ test('creates structure section with unlimited levels', function () {
 
     expect($result['type'])->toBe('structure')
         ->and($result['maxLevels'])->toBeNull(); // Should be null for unlimited
+});
+
+test('creates section with maxAuthors setting', function () {
+    // First create an entry type
+    $entryType = ($this->createEntryType)('Multi Author Content');
+    
+    $result = ($this->createSection)('Multi Author Section', 'channel', [$entryType['entryTypeId']], [
+        'maxAuthors' => 3
+    ]);
+
+    expect($result['name'])->toBe('Multi Author Section')
+        ->and($result['type'])->toBe('channel')
+        ->and($result['maxAuthors'])->toBe(3);
+});
+
+test('creates section without maxAuthors (uses Craft default)', function () {
+    // First create an entry type
+    $entryType = ($this->createEntryType)('Standard Content');
+    
+    $result = ($this->createSection)('Standard Section', 'channel', [$entryType['entryTypeId']]);
+
+    expect($result['name'])->toBe('Standard Section')
+        ->and($result['type'])->toBe('channel')
+        ->and($result['maxAuthors'])->toBe(1); // Craft CMS default is 1
+});
+
+test('creates section with maxAuthors set to 1', function () {
+    // First create an entry type
+    $entryType = ($this->createEntryType)('Single Author Content');
+    
+    $result = ($this->createSection)('Single Author Section', 'channel', [$entryType['entryTypeId']], [
+        'maxAuthors' => 1
+    ]);
+
+    expect($result['name'])->toBe('Single Author Section')
+        ->and($result['type'])->toBe('channel')
+        ->and($result['maxAuthors'])->toBe(1);
 });
