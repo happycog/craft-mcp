@@ -3,6 +3,7 @@
 namespace happycog\craftmcp\tools;
 
 use Craft;
+use craft\helpers\StringHelper;
 use craft\helpers\UrlHelper;
 use craft\models\Section;
 use craft\models\Section_SiteSettings;
@@ -38,28 +39,28 @@ class CreateSection
     public function create(
         #[Schema(type: 'string', description: 'The display name for the section')]
         string $name,
-        
+
         #[Schema(type: 'string', enum: ['single', 'channel', 'structure'], description: 'Section type: single (one entry), channel (multiple entries), or structure (hierarchical entries)')]
         string $type,
-        
+
         #[Schema(type: 'array', items: ['type' => 'integer'], description: 'Array of entry type IDs to assign to this section. Use CreateEntryType tool to create entry types first.')]
         array $entryTypeIds,
-        
+
         #[Schema(type: 'string', description: 'The section handle (machine-readable name). Auto-generated from name if not provided.')]
         ?string $handle = null,
-        
+
         #[Schema(type: 'boolean', description: 'Whether to enable entry versioning for this section')]
         bool $enableVersioning = true,
-        
+
         #[Schema(type: 'string', enum: ['all', 'siteGroup', 'language', 'custom', 'none'], description: 'How content propagates across sites: all, siteGroup, language, custom, or none')]
         string $propagationMethod = Section::PROPAGATION_METHOD_ALL,
-        
+
         #[Schema(type: 'integer', description: 'Maximum hierarchy levels (only for structure sections). Null/0 for unlimited.')]
         ?int $maxLevels = null,
-        
+
         #[Schema(type: 'string', enum: ['beginning', 'end'], description: 'Where new entries are placed by default (only for structure sections)')]
         string $defaultPlacement = Section::DEFAULT_PLACEMENT_END,
-        
+
         #[Schema(type: 'array', description: 'Site-specific settings. If not provided, section will be enabled for all sites with default settings.')]
         ?array $siteSettings = null
     ): array {
@@ -76,7 +77,7 @@ class CreateSection
         }
 
         // Auto-generate handle if not provided
-        $handle ??= $this->generateHandle($name);
+        $handle ??= StringHelper::toHandle($name);
 
         // Create the section
         $section = new Section([
@@ -163,21 +164,5 @@ class CreateSection
             'maxLevels' => $section->type === Section::TYPE_STRUCTURE ? ($section->maxLevels ?: null) : null,
             'editUrl' => $editUrl,
         ];
-    }
-
-    private function generateHandle(string $name): string
-    {
-        // Convert to camelCase handle
-        $handle = preg_replace('/[^a-zA-Z0-9]/', ' ', $name);
-        $handle = ucwords(strtolower($handle ?? ''));
-        $handle = str_replace(' ', '', $handle);
-        $handle = lcfirst($handle);
-
-        // Ensure it doesn't start with a number
-        if (preg_match('/^[0-9]/', $handle)) {
-            $handle = 'section' . ucfirst($handle);
-        }
-
-        return $handle;
     }
 }
