@@ -14,7 +14,7 @@ class DeleteSection
      * @return array<string, mixed>
      */
     #[McpTool(
-        name: 'craft_delete_section',
+        name: 'delete_section',
         description: <<<'END'
         Delete a section from Craft CMS. This will remove the section and potentially affect related data.
 
@@ -49,7 +49,7 @@ class DeleteSection
     public function delete(int $sectionId, bool $force = false): array
     {
         $sectionsService = Craft::$app->getEntries();
-        
+
         // Get the section
         $section = $sectionsService->getSectionById($sectionId);
         throw_unless($section, "Section with ID {$sectionId} not found");
@@ -64,12 +64,12 @@ class DeleteSection
             assert(is_int($impact['draftCount']) || is_string($impact['draftCount']));
             assert(is_int($impact['revisionCount']) || is_string($impact['revisionCount']));
             assert(is_int($impact['entryTypeCount']) || is_string($impact['entryTypeCount']));
-            
+
             $entryCount = (string)$impact['entryCount'];
             $draftCount = (string)$impact['draftCount'];
             $revisionCount = (string)$impact['revisionCount'];
             $entryTypeCount = (string)$impact['entryTypeCount'];
-            
+
             throw new \RuntimeException(
                 "Section '{$section->name}' contains data and cannot be deleted without force=true.\n\n" .
                 "Impact Assessment:\n" .
@@ -162,13 +162,13 @@ class DeleteSection
             // Type-safe access to impact data
             $impact = $result['impact'];
             assert(is_array($impact), 'Impact must be an array');
-            
+
             $impactText = '';
             if ($impact['hasContent']) {
                 $entryCount = (string)$impact['entryCount'];
                 $draftCount = (string)$impact['draftCount'];
                 $revisionCount = (string)$impact['revisionCount'];
-                
+
                 $impactText = "\n\nDeleted Content:\n" .
                              "- Entries: {$entryCount}\n" .
                              "- Drafts: {$draftCount}\n" .
@@ -180,12 +180,12 @@ class DeleteSection
                 $entryTypesText = "\n\nAffected Entry Types:\n";
                 $entryTypes = $impact['entryTypes'];
                 assert(is_array($entryTypes), 'Entry types must be an array');
-                
+
                 foreach ($entryTypes as $entryType) {
                     assert(is_array($entryType), 'Entry type must be an array');
                     assert(is_int($entryType['name']) || is_string($entryType['name']));
                     assert(is_int($entryType['id']) || is_string($entryType['id']));
-                    
+
                     $name = (string)$entryType['name'];
                     $id = (string)$entryType['id'];
                     $entryTypesText .= "- {$name} (ID: {$id})\n";
@@ -195,7 +195,7 @@ class DeleteSection
 
             assert(is_int($result['name']) || is_string($result['name']));
             assert(is_int($result['id']) || is_string($result['id']));
-            
+
             $resultName = (string)$result['name'];
             $resultId = (string)$result['id'];
 

@@ -152,7 +152,7 @@ parameters:
 ## Development Patterns
 
 ### 1. Creating New MCP Tools
-Create tool classes in `src/tools/`. Tools must implement MCP tool interface:
+Create tool classes in `src/tools/`. Tools use modern PHP8 attributes for schema definition:
 
 **IMPORTANT**: All tools that create, update, or modify content MUST include an explicit instruction in their description to link the user back to the Craft control panel for review. Follow the CreateEntry pattern:
 
@@ -161,20 +161,63 @@ After [action] always link the user back to the entry in the Craft control panel
 the changes in the context of the Craft UI.
 ```
 
+**PREFERRED: Modern PHP8 Attribute Approach (use this for all new tools):**
+
 ```php
 // src/tools/ExampleTool.php
+namespace happycog\craftmcp\tools;
+
+use PhpMcp\Server\Attributes\McpTool;
+use PhpMcp\Server\Attributes\Schema;
+
+class ExampleTool
+{
+    /**
+     * @return array<string, mixed>
+     */
+    #[McpTool(
+        name: 'example_tool',
+        description: <<<'END'
+        Example tool description that supports multiple lines.
+        
+        After performing action always link the user back to the relevant page in the Craft 
+        control panel so they can review the changes in the context of the Craft UI.
+        END
+    )]
+    public function performAction(
+        #[Schema(type: 'string', description: 'Parameter description')]
+        string $parameter,
+        
+        #[Schema(type: 'integer', description: 'Optional number parameter')]
+        ?int $optionalNumber = null
+    ): array {
+        // Tool implementation logic
+        
+        return [
+            'success' => true,
+            'result' => 'Tool executed successfully',
+            'parameter' => $parameter,
+        ];
+    }
+}
+```
+
+**LEGACY: Manual Schema Approach (avoid for new tools):**
+
+```php
+// DEPRECATED - Only shown for reference, do not use for new tools
 namespace happycog\craftmcp\tools;
 
 use PhpMcp\Schema\Tool;
 use PhpMcp\Schema\CallToolRequest;
 use PhpMcp\Schema\CallToolResult;
 
-class ExampleTool
+class LegacyExampleTool
 {
     public function getSchema(): Tool
     {
         return Tool::make(
-            name: 'example_tool',
+            name: 'legacy_example_tool',
             description: 'Example tool description',
             inputSchema: [
                 'type' => 'object',
@@ -293,7 +336,8 @@ test('endpoint returns valid response', function () {
 - Uses php-mcp/server package for protocol handling - do NOT reimplement MCP manually
 - Server capabilities are configured in Plugin.php with tools=true, resources=false, prompts=false
 - Tool discovery happens automatically by scanning src/tools/ directory
-- Each tool must implement getSchema() and execute() methods
+- **Modern Tools**: Use PHP8 attributes (`#[McpTool]` and `#[Schema]`) with single public method implementation
+- **Legacy Tools**: Some tools still use `getSchema()` and `execute()` methods (should be modernized to attributes)
 
 ### Craft 5.x Specific Considerations
 - **Draft Properties**: Always use `draftName`, `draftNotes`, `isProvisionalDraft` - these are the correct Craft 5.x property names

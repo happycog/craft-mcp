@@ -318,3 +318,12 @@ While entry types can be created with basic field layouts, advanced field layout
 
 ---
 **🔄 NEARLY COMPLETE** - Entry type management suite is fully implemented and tested. CreateSection and DeleteSection tools are now complete with comprehensive validation and testing. Only UpdateSection and advanced field layout tools remain to be implemented.
+
+## Post-Implementation Updates
+
+### UpdateFieldLayout Tool Modernization (December 2024)
+- **Modernized `src/tools/UpdateFieldLayout.php`** from legacy `getSchema()`/`execute()` pattern to PHP8 attributes (`#[McpTool]` and `#[Schema]`)
+- **Pattern Established**: PHP8 attributes are now the preferred method for new MCP tool development
+- **Maintained Functionality**: All existing field layout capabilities preserved (tab organization, field ordering, width control, required settings)
+- **Quality Assurance**: All tests continue to pass, PHPStan analysis passes at max level
+- **Documentation Updated**: AGENTS.md updated to reflect PHP8 attribute preference and mark legacy patterns as deprecated

@@ -6,51 +6,11 @@ namespace happycog\craftmcp\tools;
 
 use Craft;
 use craft\models\EntryType;
-use PhpMcp\Schema\CallToolRequest;
-use PhpMcp\Schema\CallToolResult;
-use PhpMcp\Schema\Tool;
 use PhpMcp\Server\Attributes\McpTool;
 use PhpMcp\Server\Attributes\Schema;
 
 class GetEntryTypes
 {
-    public function getSchema(): Tool
-    {
-        return Tool::make(
-            name: 'craft_get_entry_types',
-            description: 'Get a list of all entry types in Craft CMS. This is helpful for understanding the content structure and discovering available entry type IDs for creating entries.',
-            inputSchema: [
-                'type' => 'object',
-                'properties' => [
-                    'sectionId' => [
-                        'type' => 'number',
-                        'description' => 'Optional section ID to filter entry types by section'
-                    ],
-                    'includeStandalone' => [
-                        'type' => 'boolean',
-                        'description' => 'Whether to include standalone entry types (not associated with sections). Default: true'
-                    ]
-                ],
-                'required' => []
-            ]
-        );
-    }
-
-    /** @phpstan-ignore-next-line */
-    public function execute(CallToolRequest $request): CallToolResult
-    {
-        /** @phpstan-ignore-next-line */
-        $args = $request->params->arguments;
-        $sectionId = isset($args['sectionId']) ? (int) $args['sectionId'] : null;
-        $includeStandalone = $args['includeStandalone'] ?? true;
-
-        $result = $this->getAll($sectionId, $includeStandalone);
-
-        /** @phpstan-ignore-next-line */
-        return CallToolResult::make(
-            content: [['type' => 'text', 'text' => json_encode($result, JSON_PRETTY_PRINT)]]
-        );
-    }
 
     /**
      * @return array<string, mixed>
@@ -60,9 +20,9 @@ class GetEntryTypes
         description: 'Get a list of all entry types in Craft CMS. This is helpful for understanding the content structure and discovering available entry type IDs for creating entries.'
     )]
     public function getAll(
-        #[Schema(type: 'number')]
+        #[Schema(type: 'number', description: 'Optional section ID to filter entry types by section')]
         ?int $sectionId = null,
-        #[Schema(type: 'boolean')]
+        #[Schema(type: 'boolean', description: 'Whether to include standalone entry types (not associated with sections). Default: true')]
         bool $includeStandalone = true
     ): array
     {
@@ -163,7 +123,7 @@ class GetEntryTypes
                 'handle' => $section->handle,
                 'type' => $section->type,
             ];
-            
+
             // Get control panel URL safely
             $generalConfig = Craft::$app->getConfig()->getGeneral();
             $cpUrl = $generalConfig->cpUrl ?? '';

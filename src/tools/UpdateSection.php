@@ -17,7 +17,7 @@ class UpdateSection
      * @return array<string, mixed>
      */
     #[McpTool(
-        name: 'craft_update_section',
+        name: 'update_section',
         description: <<<'END'
         Update an existing section in Craft CMS. Allows modification of section properties
         including name, handle, site settings, and entry type associations while preserving
@@ -27,7 +27,7 @@ class UpdateSection
         changes require careful consideration due to hierarchical data. Entry type associations
         can be updated to add or remove entry types from the section.
 
-        After updating the section always link the user back to the section settings in the Craft 
+        After updating the section always link the user back to the section settings in the Craft
         control panel so they can review the changes in the context of the Craft UI.
         END
     )]
@@ -114,7 +114,7 @@ class UpdateSection
         ?array $siteSettingsData = null
     ): array {
         $sectionsService = Craft::$app->getEntries();
-        
+
         // Get existing section
         $section = $sectionsService->getSectionById($sectionId);
         throw_unless($section, "Section with ID {$sectionId} not found");
@@ -123,7 +123,7 @@ class UpdateSection
         if ($name !== null) {
             $section->name = $name;
         }
-        
+
         if ($handle !== null) {
             $section->handle = $handle;
         }
@@ -135,7 +135,7 @@ class UpdateSection
                 'structure' => Section::TYPE_STRUCTURE,
                 default => throw new \InvalidArgumentException("Invalid section type: {$type}")
             };
-            
+
             // Check for type change restrictions
             $this->validateTypeChange($section, $newType);
             $section->type = $newType;
@@ -161,7 +161,7 @@ class UpdateSection
             if ($maxLevels !== null) {
                 $section->maxLevels = $maxLevels ?: null;
             }
-            
+
             if ($defaultPlacement !== null) {
                 $section->defaultPlacement = match ($defaultPlacement) {
                     'beginning' => Section::DEFAULT_PLACEMENT_BEGINNING,
@@ -177,9 +177,9 @@ class UpdateSection
             foreach ($siteSettingsData as $siteData) {
                 assert(is_array($siteData), 'Site data must be an array');
                 assert(is_int($siteData['siteId']), 'Site ID must be an integer');
-                
+
                 $siteId = $siteData['siteId'];
-                
+
                 // Validate site exists
                 $site = Craft::$app->getSites()->getSiteById($siteId);
                 throw_unless($site, "Site with ID {$siteId} not found");
@@ -195,7 +195,7 @@ class UpdateSection
 
                 $siteSettings[$siteId] = $settings;
             }
-            
+
             $section->setSiteSettings($siteSettings);
         }
 
@@ -208,7 +208,7 @@ class UpdateSection
                     $errorMessages[] = "{$field}: {$error}";
                 }
             }
-            
+
             throw new \RuntimeException('Failed to update section: ' . implode(', ', $errorMessages));
         }
 
@@ -244,7 +244,7 @@ class UpdateSection
     private function updateEntryTypeAssociations(Section $section, array $entryTypeIds): void
     {
         $sectionsService = Craft::$app->getEntries();
-        
+
         // Validate all entry types exist and collect them
         $entryTypes = [];
         foreach ($entryTypeIds as $entryTypeId) {
@@ -255,7 +255,7 @@ class UpdateSection
 
         // Set the entry types on the section (this replaces all existing associations)
         $section->setEntryTypes($entryTypes);
-        
+
         // Save the section to persist the entry type associations
         if (!$sectionsService->saveSection($section)) {
             throw new \RuntimeException("Failed to update entry type associations for section");

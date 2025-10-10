@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace happycog\craftmcp\tools;
 
 use Craft;
@@ -9,100 +7,68 @@ use craft\fieldlayoutelements\CustomField;
 use craft\models\EntryType;
 use craft\models\FieldLayout;
 use craft\models\FieldLayoutTab;
-use PhpMcp\Schema\CallToolRequest;
-use PhpMcp\Schema\CallToolResult;
-use PhpMcp\Schema\Tool;
 use PhpMcp\Server\Attributes\McpTool;
 use PhpMcp\Server\Attributes\Schema;
 
-
-
 class UpdateFieldLayout
 {
-    public function getSchema(): Tool
-    {
-        return Tool::make(
-            name: 'craft_update_field_layout',
-            description: 'Update the field layout for an entry type. Allows organizing fields into tabs, setting field properties like required status, and controlling field order. Supports adding, removing, and reordering both tabs and fields within tabs.
-
-After updating the field layout always link the user back to the entry type settings in the Craft control panel so they can review the changes in the context of the Craft UI.',
-            inputSchema: [
-                'type' => 'object',
-                'properties' => [
-                    'entryTypeId' => [
-                        'type' => 'integer',
-                        'description' => 'The ID of the entry type to update the field layout for'
-                    ],
-                    'tabs' => [
-                        'type' => 'array',
-                        'description' => 'Array of tabs to organize fields. Tabs will be created in the order provided.',
-                        'items' => [
-                            'type' => 'object',
-                            'properties' => [
-                                'name' => [
-                                    'type' => 'string',
-                                    'description' => 'The display name for the tab'
-                                ],
-                                'fields' => [
-                                    'type' => 'array',
-                                    'description' => 'Array of field configurations for this tab',
-                                    'items' => [
-                                        'type' => 'object',
-                                        'properties' => [
-                                            'fieldId' => [
-                                                'type' => 'integer',
-                                                'description' => 'The ID of the field to add to this tab'
-                                            ],
-                                            'required' => [
-                                                'type' => 'boolean',
-                                                'description' => 'Whether this field is required (default: false)',
-                                                'default' => false
-                                            ],
-                                            'width' => [
-                                                'type' => 'integer',
-                                                'description' => 'Width percentage for the field (25, 50, 75, or 100)',
-                                                'enum' => [25, 50, 75, 100],
-                                                'default' => 100
-                                            ]
-                                        ],
-                                        'required' => ['fieldId']
-                                    ]
-                                ]
-                            ],
-                            'required' => ['name', 'fields']
-                        ]
-                    ]
-                ],
-                'required' => ['entryTypeId', 'tabs']
-            ]
-        );
-    }
-
-    public function execute(CallToolRequest $request): CallToolResult // @phpstan-ignore-line
-    {
-        $args = $request->params->arguments; // @phpstan-ignore-line
-        $entryTypeId = (int) $args['entryTypeId'];
-        $tabs = $args['tabs'];
-
-        $result = $this->update($entryTypeId, $tabs);
-
-        return CallToolResult::make( // @phpstan-ignore-line
-            content: [['type' => 'text', 'text' => json_encode($result, JSON_PRETTY_PRINT)]]
-        );
-    }
-
     /**
      * @param array<int, array<string, mixed>> $tabs
      * @return array<string, mixed>
      */
     #[McpTool(
-        name: 'craft_update_field_layout',
-        description: 'Update the field layout for an entry type. Allows organizing fields into tabs, setting field properties like required status, and controlling field order.'
+        name: 'update_field_layout',
+        description: <<<'END'
+        Update the field layout for an entry type. Allows organizing fields into tabs, setting field properties
+        like required status, and controlling field order.
+
+        After updating the field layout always link the user back to the entry type settings in the Craft control
+        panel so they can review the changes in the context of the Craft UI.
+        END
     )]
     public function update(
-        #[Schema(type: 'integer')]
+        #[Schema(type: 'integer', description: 'The ID of the entry type to update the field layout for')]
         int $entryTypeId,
-        #[Schema(type: 'array')]
+
+        #[Schema(
+            type: 'array',
+            description: 'Array of tabs to organize fields. Tabs will be created in the order provided.',
+            items: [
+                'type' => 'object',
+                'properties' => [
+                    'name' => [
+                        'type' => 'string',
+                        'description' => 'The display name for the tab'
+                    ],
+                    'fields' => [
+                        'type' => 'array',
+                        'description' => 'Array of field configurations for this tab',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'fieldId' => [
+                                    'type' => 'integer',
+                                    'description' => 'The ID of the field to add to this tab'
+                                ],
+                                'required' => [
+                                    'type' => 'boolean',
+                                    'description' => 'Whether this field is required (default: false)',
+                                    'default' => false
+                                ],
+                                'width' => [
+                                    'type' => 'integer',
+                                    'description' => 'Width percentage for the field (25, 50, 75, or 100)',
+                                    'enum' => [25, 50, 75, 100],
+                                    'default' => 100
+                                ]
+                            ],
+                            'required' => ['fieldId']
+                        ]
+                    ]
+                ],
+                'required' => ['name', 'fields']
+            ]
+        )]
         array $tabs
     ): array {
         $entriesService = Craft::$app->getEntries();
@@ -123,7 +89,7 @@ After updating the field layout always link the user back to the entry type sett
         foreach ($tabs as $tabData) {
             assert(is_array($tabData));
             assert(isset($tabData['fields']) && is_array($tabData['fields']));
-            
+
             foreach ($tabData['fields'] as $fieldConfig) {
                 assert(is_array($fieldConfig));
                 assert(isset($fieldConfig['fieldId']) && is_int($fieldConfig['fieldId']));
@@ -134,7 +100,7 @@ After updating the field layout always link the user back to the entry type sett
         // Validate all fields exist
         foreach ($allFieldIds as $fieldId) {
             $field = $fieldsService->getFieldById($fieldId);
-                \throw_unless($field !== null, "Field with ID {$fieldId} not found");
+            \throw_unless($field !== null, "Field with ID {$fieldId} not found");
         }
 
         // Create new tabs
@@ -148,7 +114,7 @@ After updating the field layout always link the user back to the entry type sett
             foreach ($tabData['fields'] as $fieldConfig) {
                 assert(is_array($fieldConfig));
                 assert(isset($fieldConfig['fieldId']) && is_int($fieldConfig['fieldId']));
-                
+
                 $fieldId = $fieldConfig['fieldId'];
                 $required = $fieldConfig['required'] ?? false;
                 $width = $fieldConfig['width'] ?? 100;
@@ -157,7 +123,7 @@ After updating the field layout always link the user back to the entry type sett
                 assert(is_int($width) && in_array($width, [25, 50, 75, 100], true));
 
                 $field = $fieldsService->getFieldById($fieldId);
-            \throw_unless($field !== null, "Field with ID {$fieldId} not found");
+                \throw_unless($field !== null, "Field with ID {$fieldId} not found");
 
                 $customFieldElement = new CustomField($field);
                 $customFieldElement->required = $required;

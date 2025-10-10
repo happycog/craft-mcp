@@ -4,18 +4,6 @@ declare(strict_types=1);
 
 use happycog\craftmcp\tools\GetEntryTypes;
 
-test('GetEntryTypes has correct schema', function () {
-    $tool = new GetEntryTypes();
-    $schema = $tool->getSchema();
-    
-    expect($schema->name)->toBe('craft_get_entry_types');
-    expect($schema->description)->toContain('Get a list of all entry types');
-    expect($schema->inputSchema['type'])->toBe('object');
-    expect($schema->inputSchema['required'])->toBeEmpty(); // No required parameters
-    expect($schema->inputSchema['properties'])->toHaveKey('sectionId');
-    expect($schema->inputSchema['properties'])->toHaveKey('includeStandalone');
-});
-
 test('GetEntryTypes getAll returns structured data', function () {
     $tool = new GetEntryTypes();
     $result = $tool->getAll();

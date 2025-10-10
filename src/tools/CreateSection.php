@@ -18,19 +18,19 @@ class CreateSection
      * @return array<string, mixed>
      */
     #[McpTool(
-        name: 'craft_create_section',
+        name: 'create_section',
         description: <<<'END'
         Create a new section in Craft CMS. Sections define the structural organization of content with different types:
         - Single: One entry per section (e.g., homepage, about page)
         - Channel: Multiple entries with flexible structure (e.g., news, blog posts)
         - Structure: Hierarchical entries with parent-child relationships (e.g., pages with nested structure)
 
-        Supports multi-site installations with site-specific settings. Entry types must be created separately using the 
+        Supports multi-site installations with site-specific settings. Entry types must be created separately using the
         CreateEntryType tool and can be assigned to the section after creation.
 
         Returns the section details including control panel URL for further configuration.
 
-        After creating the section always link the user back to the section settings in the Craft control panel 
+        After creating the section always link the user back to the section settings in the Craft control panel
         so they can review and further configure the section in the context of the Craft UI.
         END
     )]
@@ -131,7 +131,7 @@ class CreateSection
         string $defaultPlacement = Section::DEFAULT_PLACEMENT_END,
         ?array $siteSettings = null
     ): array {
-        throw_unless(in_array($type, [Section::TYPE_SINGLE, Section::TYPE_CHANNEL, Section::TYPE_STRUCTURE]), 
+        throw_unless(in_array($type, [Section::TYPE_SINGLE, Section::TYPE_CHANNEL, Section::TYPE_STRUCTURE]),
                     'Section type must be single, channel, or structure');
 
         throw_unless(!empty($entryTypeIds), 'At least one entry type ID is required');
@@ -169,7 +169,7 @@ class CreateSection
             if ($maxLevels !== null && $maxLevels > 0) {
                 $section->maxLevels = $maxLevels;
             }
-            
+
             // Validate and set default placement
             if (in_array($defaultPlacement, [Section::DEFAULT_PLACEMENT_BEGINNING, Section::DEFAULT_PLACEMENT_END])) {
                 $section->defaultPlacement = $defaultPlacement;
@@ -180,13 +180,13 @@ class CreateSection
 
         // Configure site settings
         $siteSettingsObjects = [];
-        
+
         if ($siteSettings) {
             // Use provided site settings
             foreach ($siteSettings as $siteSettingData) {
                 $siteId = $siteSettingData['siteId'];
                 throw_unless(is_int($siteId), 'siteId must be an integer');
-                
+
                 $site = Craft::$app->getSites()->getSiteById($siteId);
                 throw_unless($site, "Site with ID {$siteId} not found");
 
@@ -216,7 +216,7 @@ class CreateSection
 
         // Save the section
         $sectionsService = Craft::$app->getEntries();
-        
+
         if (!$sectionsService->saveSection($section)) {
             $errors = $section->getErrors();
             $errorMessages = [];
@@ -225,7 +225,7 @@ class CreateSection
                     $errorMessages[] = "{$field}: {$error}";
                 }
             }
-            
+
             throw new \RuntimeException('Failed to create section: ' . implode(', ', $errorMessages));
         }
 
@@ -309,12 +309,12 @@ class CreateSection
         $handle = ucwords(strtolower($handle ?? ''));
         $handle = str_replace(' ', '', $handle);
         $handle = lcfirst($handle);
-        
+
         // Ensure it doesn't start with a number
         if (preg_match('/^[0-9]/', $handle)) {
             $handle = 'section' . ucfirst($handle);
         }
-        
+
         return $handle;
     }
 }
