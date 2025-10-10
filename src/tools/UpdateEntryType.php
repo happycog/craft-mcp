@@ -6,6 +6,7 @@ use Craft;
 use craft\enums\Color;
 use craft\fieldlayoutelements\entries\EntryTitleField;
 use craft\helpers\UrlHelper;
+use happycog\craftmcp\exceptions\ModelSaveException;
 use PhpMcp\Server\Attributes\McpTool;
 use PhpMcp\Server\Attributes\Schema;
 
@@ -113,14 +114,7 @@ class UpdateEntryType
 
         // Save the updated entry type
         if (!$entriesService->saveEntryType($entryType)) {
-            $errors = $entryType->getErrors();
-            $errorMessages = [];
-            foreach ($errors as $attribute => $attributeErrors) {
-                foreach ($attributeErrors as $error) {
-                    $errorMessages[] = "{$attribute}: {$error}";
-                }
-            }
-            throw new \Exception("Failed to update entry type: " . implode(', ', $errorMessages));
+            throw new ModelSaveException($entryType);
         }
 
         // Generate control panel URL

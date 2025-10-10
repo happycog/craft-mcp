@@ -3,6 +3,7 @@
 namespace happycog\craftmcp\tools;
 
 use Craft;
+use happycog\craftmcp\exceptions\ModelSaveException;
 use PhpMcp\Server\Attributes\McpTool;
 use PhpMcp\Server\Attributes\Schema;
 
@@ -69,14 +70,7 @@ class DeleteEntryType
         
         // Attempt to delete the entry type
         if (!$entriesService->deleteEntryType($entryType)) {
-            $errors = $entryType->getErrors();
-            $errorMessages = [];
-            foreach ($errors as $attribute => $attributeErrors) {
-                foreach ($attributeErrors as $error) {
-                    $errorMessages[] = "{$attribute}: {$error}";
-                }
-            }
-            throw new \Exception("Failed to delete entry type: " . implode(', ', $errorMessages));
+            throw new ModelSaveException($entryType);
         }
         
         $message = "Entry type '{$entryTypeInfo['name']}' was successfully deleted.";

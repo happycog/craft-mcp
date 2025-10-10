@@ -6,6 +6,7 @@ use Craft;
 use craft\helpers\UrlHelper;
 use craft\models\Section;
 use craft\models\Section_SiteSettings;
+use happycog\craftmcp\exceptions\ModelSaveException;
 use PhpMcp\Schema\CallToolRequest;
 use PhpMcp\Schema\CallToolResult;
 use PhpMcp\Server\Attributes\McpTool;
@@ -218,15 +219,7 @@ class CreateSection
         $sectionsService = Craft::$app->getEntries();
 
         if (!$sectionsService->saveSection($section)) {
-            $errors = $section->getErrors();
-            $errorMessages = [];
-            foreach ($errors as $field => $fieldErrors) {
-                foreach ($fieldErrors as $error) {
-                    $errorMessages[] = "{$field}: {$error}";
-                }
-            }
-
-            throw new \RuntimeException('Failed to create section: ' . implode(', ', $errorMessages));
+            throw new ModelSaveException($section);
         }
 
         // Generate control panel URL

@@ -7,6 +7,7 @@ use craft\enums\PropagationMethod;
 use craft\helpers\UrlHelper;
 use craft\models\Section;
 use craft\models\Section_SiteSettings;
+use happycog\craftmcp\exceptions\ModelSaveException;
 use PhpMcp\Schema\CallToolRequest;
 use PhpMcp\Schema\CallToolResult;
 use PhpMcp\Server\Attributes\McpTool;
@@ -201,15 +202,7 @@ class UpdateSection
 
         // Validate and save section
         if (!$sectionsService->saveSection($section)) {
-            $errors = $section->getErrors();
-            $errorMessages = [];
-            foreach ($errors as $field => $fieldErrors) {
-                foreach ($fieldErrors as $error) {
-                    $errorMessages[] = "{$field}: {$error}";
-                }
-            }
-
-            throw new \RuntimeException('Failed to update section: ' . implode(', ', $errorMessages));
+            throw new ModelSaveException($section);
         }
 
         // Update entry type associations if provided
@@ -258,7 +251,7 @@ class UpdateSection
 
         // Save the section to persist the entry type associations
         if (!$sectionsService->saveSection($section)) {
-            throw new \RuntimeException("Failed to update entry type associations for section");
+            throw new ModelSaveException($section);
         }
     }
 

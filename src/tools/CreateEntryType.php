@@ -8,6 +8,7 @@ use craft\fieldlayoutelements\entries\EntryTitleField;
 use craft\helpers\StringHelper;
 use craft\helpers\UrlHelper;
 use craft\models\EntryType;
+use happycog\craftmcp\exceptions\ModelSaveException;
 use PhpMcp\Server\Attributes\McpTool;
 use PhpMcp\Server\Attributes\Schema;
 
@@ -98,14 +99,7 @@ class CreateEntryType
 
         // Save the entry type
         if (! $entriesService->saveEntryType($entryType)) {
-            $errors = $entryType->getErrors();
-            $errorMessages = [];
-            foreach ($errors as $attribute => $attributeErrors) {
-                foreach ($attributeErrors as $error) {
-                    $errorMessages[] = "{$attribute}: {$error}";
-                }
-            }
-            throw new \Exception("Failed to save entry type: " . implode(', ', $errorMessages));
+            throw new ModelSaveException($entryType);
         }
 
         // Generate control panel URL

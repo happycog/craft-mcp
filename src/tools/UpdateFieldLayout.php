@@ -7,6 +7,7 @@ use craft\fieldlayoutelements\CustomField;
 use craft\models\EntryType;
 use craft\models\FieldLayout;
 use craft\models\FieldLayoutTab;
+use happycog\craftmcp\exceptions\ModelSaveException;
 use PhpMcp\Server\Attributes\McpTool;
 use PhpMcp\Server\Attributes\Schema;
 
@@ -145,8 +146,9 @@ class UpdateFieldLayout
         $fieldLayout->setTabs($newTabs);
 
         // Save the field layout
-        $saved = $fieldsService->saveLayout($fieldLayout);
-        \throw_unless($saved, 'Failed to save field layout: ' . implode(', ', $fieldLayout->getErrors()));
+        if (! $fieldsService->saveLayout($fieldLayout)) {
+            throw new ModelSaveException($fieldLayout);
+        }
 
         // Get section information for edit URL
         $section = null;

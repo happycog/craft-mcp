@@ -56,15 +56,16 @@ test('delete section tool schema is valid', function () {
 
 test('deletes empty section successfully', function () {
     // Create a section without any entries
-    $section = ($this->createTestSection)('Delete Test Empty');
+    $sectionName = 'Delete Test Empty ' . $this->uniqueId;
+    $section = ($this->createTestSection)($sectionName);
     
     $tool = new DeleteSection();
     $result = $tool->delete($section['sectionId']);
     
     expect($result)->toBeArray()
         ->and($result['id'])->toBe($section['sectionId'])
-        ->and($result['name'])->toBe('Delete Test Empty')
-        ->and($result['handle'])->toBe('deleteTestEmpty')
+        ->and($result['name'])->toBe($sectionName)
+        ->and($result['handle'])->toBe($section['handle'])
         ->and($result['impact']['hasContent'])->toBeFalse()
         ->and($result['impact']['entryCount'])->toBe(0)
         ->and($result['impact']['draftCount'])->toBe(0)
@@ -73,7 +74,8 @@ test('deletes empty section successfully', function () {
 
 test('prevents deletion of section with entries without force', function () {
     // Create a section and add an entry
-    $section = ($this->createTestSection)('Delete Test With Entries');
+    $sectionName = 'Delete Test With Entries ' . $this->uniqueId;
+    $section = ($this->createTestSection)($sectionName);
     $entryType = $section['entryTypes'][0] ?? null;
     expect($entryType)->not->toBeNull();
     
@@ -82,12 +84,13 @@ test('prevents deletion of section with entries without force', function () {
     $tool = new DeleteSection();
     
     expect(fn() => $tool->delete($section['sectionId']))
-        ->toThrow(RuntimeException::class, 'Section \'Delete Test With Entries\' contains data and cannot be deleted without force=true');
+        ->toThrow(RuntimeException::class, "Section '{$sectionName}' contains data and cannot be deleted without force=true");
 });
 
 test('deletes section with entries when force is true', function () {
     // Create a section and add an entry
-    $section = ($this->createTestSection)('Delete Test Force');
+    $sectionName = 'Delete Test Force ' . $this->uniqueId;
+    $section = ($this->createTestSection)($sectionName);
     $entryType = $section['entryTypes'][0] ?? null;
     expect($entryType)->not->toBeNull();
     
@@ -98,14 +101,15 @@ test('deletes section with entries when force is true', function () {
     
     expect($result)->toBeArray()
         ->and($result['id'])->toBe($section['sectionId'])
-        ->and($result['name'])->toBe('Delete Test Force')
+        ->and($result['name'])->toBe($sectionName)
         ->and($result['impact']['hasContent'])->toBeTrue()
         ->and($result['impact']['entryCount'])->toBeGreaterThan(0);
 });
 
 test('provides detailed impact assessment', function () {
     // Create a section and add multiple entries
-    $section = ($this->createTestSection)('Delete Test Impact');
+    $sectionName = 'Delete Test Impact ' . $this->uniqueId;
+    $section = ($this->createTestSection)($sectionName);
     $entryType = $section['entryTypes'][0] ?? null;
     expect($entryType)->not->toBeNull();
     
@@ -139,7 +143,7 @@ test('fails when section does not exist', function () {
 });
 
 test('deletes single section type', function () {
-    $section = ($this->createTestSection)('Single Section Delete', 'single');
+    $section = ($this->createTestSection)('Single Section Delete ' . $this->uniqueId, 'single');
     
     $tool = new DeleteSection();
     // Single sections may have auto-created entries, use force if needed
@@ -150,7 +154,7 @@ test('deletes single section type', function () {
 });
 
 test('deletes channel section type', function () {
-    $section = ($this->createTestSection)('Channel Section Delete', 'channel');
+    $section = ($this->createTestSection)('Channel Section Delete ' . $this->uniqueId, 'channel');
     
     $tool = new DeleteSection();
     $result = $tool->delete($section['sectionId']);
@@ -160,7 +164,7 @@ test('deletes channel section type', function () {
 });
 
 test('deletes structure section type', function () {
-    $section = ($this->createTestSection)('Structure Section Delete', 'structure');
+    $section = ($this->createTestSection)('Structure Section Delete ' . $this->uniqueId, 'structure');
     
     $tool = new DeleteSection();
     $result = $tool->delete($section['sectionId']);
@@ -170,7 +174,7 @@ test('deletes structure section type', function () {
 });
 
 test('analyzes impact correctly for empty section', function () {
-    $section = ($this->createTestSection)('Empty Impact Test');
+    $section = ($this->createTestSection)('Empty Impact Test ' . $this->uniqueId);
     
     $tool = new DeleteSection();
     $result = $tool->delete($section['sectionId']);
@@ -186,7 +190,7 @@ test('analyzes impact correctly for empty section', function () {
 
 test('includes entry type information in impact', function () {
     $entryType = ($this->createTestEntryType)('Impact Entry Type');
-    $section = ($this->createTestSection)('Impact Entry Type Test', 'channel', [$entryType['entryTypeId']]);
+    $section = ($this->createTestSection)('Impact Entry Type Test ' . $this->uniqueId, 'channel', [$entryType['entryTypeId']]);
     
     $tool = new DeleteSection();
     $result = $tool->delete($section['sectionId']);
@@ -201,7 +205,7 @@ test('handles section with multiple entry types', function () {
     $entryType1 = ($this->createTestEntryType)('Multi Type 1');
     $entryType2 = ($this->createTestEntryType)('Multi Type 2');
     
-    $section = ($this->createTestSection)('Multi Type Section', 'channel', [
+    $section = ($this->createTestSection)('Multi Type Section ' . $this->uniqueId, 'channel', [
         $entryType1['entryTypeId'],
         $entryType2['entryTypeId']
     ]);
@@ -214,7 +218,7 @@ test('handles section with multiple entry types', function () {
 });
 
 test('force parameter validation', function () {
-    $section = ($this->createTestSection)('Force Validation Test');
+    $section = ($this->createTestSection)('Force Validation Test ' . $this->uniqueId);
     
     $tool = new DeleteSection();
     
@@ -222,12 +226,13 @@ test('force parameter validation', function () {
     expect($tool->delete($section['sectionId'], false))->toBeArray();
     
     // Create new section for second test
-    $section2 = ($this->createTestSection)('Force Validation Test 2');
+    $section2 = ($this->createTestSection)('Force Validation Test 2 ' . $this->uniqueId);
     expect($tool->delete($section2['sectionId'], true))->toBeArray();
 });
 
 test('error message includes section name and details', function () {
-    $section = ($this->createTestSection)('Error Message Test');
+    $sectionName = 'Error Message Test ' . $this->uniqueId;
+    $section = ($this->createTestSection)($sectionName);
     $entryType = $section['entryTypes'][0] ?? null;
     expect($entryType)->not->toBeNull();
     
@@ -237,12 +242,12 @@ test('error message includes section name and details', function () {
     
     expect(fn() => $tool->delete($section['sectionId']))
         ->toThrow(RuntimeException::class)
-        ->and(function () use ($tool, $section) {
+        ->and(function () use ($tool, $section, $sectionName) {
             try {
                 $tool->delete($section['sectionId']);
             } catch (\RuntimeException $e) {
                 $message = $e->getMessage();
-                expect($message)->toContain('Error Message Test')
+                expect($message)->toContain($sectionName)
                     ->and($message)->toContain('force=true')
                     ->and($message)->toContain('This action cannot be undone');
             }
@@ -250,7 +255,7 @@ test('error message includes section name and details', function () {
 });
 
 test('successful deletion includes complete information', function () {
-    $section = ($this->createTestSection)('Complete Info Test');
+    $section = ($this->createTestSection)('Complete Info Test ' . $this->uniqueId);
     
     $tool = new DeleteSection();
     $result = $tool->delete($section['sectionId']);
@@ -287,7 +292,7 @@ test('handles sections created with different settings', function () {
 });
 
 test('impact assessment counts are accurate', function () {
-    $section = ($this->createTestSection)('Accurate Count Test');
+    $section = ($this->createTestSection)('Accurate Count Test ' . $this->uniqueId);
     $entryType = $section['entryTypes'][0] ?? null;
     expect($entryType)->not->toBeNull();
     

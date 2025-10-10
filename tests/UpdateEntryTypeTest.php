@@ -45,12 +45,12 @@ beforeEach(function () {
             entryTypeId: $entryTypeId,
             name: $updates['name'] ?? null,
             handle: $updates['handle'] ?? null,
-            hasTitleField: $updates['hasTitleField'] ?? null,
             titleTranslationMethod: $updates['titleTranslationMethod'] ?? null,
             titleTranslationKeyFormat: $updates['titleTranslationKeyFormat'] ?? null,
             titleFormat: $updates['titleFormat'] ?? null,
             icon: $updates['icon'] ?? null,
-            color: $updates['color'] ?? null
+            color: $updates['color'] ?? null,
+            description: $updates['description'] ?? null
         );
     };
 });

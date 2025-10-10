@@ -4,6 +4,7 @@ use craft\models\Section;
 use happycog\craftmcp\tools\UpdateSection;
 use happycog\craftmcp\tools\CreateSection;
 use happycog\craftmcp\tools\CreateEntryType;
+use happycog\craftmcp\exceptions\ModelSaveException;
 use craft\elements\Entry;
 
 beforeEach(function () {
@@ -444,7 +445,7 @@ test('fails when duplicate handle provided', function () {
     expect(fn() => $tool->update(
         sectionId: $section2['sectionId'],
         handle: 'duplicateHandleTest' // Same handle as first section
-    ))->toThrow(RuntimeException::class);
+    ))->toThrow(ModelSaveException::class);
 });
 
 test('updates multiple properties at once', function () {

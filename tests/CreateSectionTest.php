@@ -223,7 +223,7 @@ test('handles duplicate section handle gracefully', function () {
     $tool = new CreateSection();
     
     expect(fn() => $tool->create('Another Test', 'channel', [$entryType2['entryTypeId']], handle: 'duplicateTest'))
-        ->toThrow(RuntimeException::class);
+        ->toThrow(\happycog\craftmcp\exceptions\ModelSaveException::class);
 });
 
 test('auto-generates handle from name', function () {
