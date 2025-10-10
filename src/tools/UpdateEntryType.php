@@ -47,6 +47,9 @@ class UpdateEntryType
         #[Schema(type: 'string', description: 'Translation key format for custom title translation')]
         ?string $titleTranslationKeyFormat = null,
         
+        #[Schema(type: 'string', description: 'Custom title format pattern (e.g., "{name} - {dateCreated|date}") for controlling entry title display')]
+        ?string $titleFormat = null,
+        
         #[Schema(type: 'string', description: 'Icon identifier for the entry type')]
         ?string $icon = null,
         
@@ -69,6 +72,7 @@ class UpdateEntryType
             'hasTitleField' => $entryType->hasTitleField,
             'titleTranslationMethod' => $entryType->titleTranslationMethod,
             'titleTranslationKeyFormat' => $entryType->titleTranslationKeyFormat,
+            'titleFormat' => $entryType->titleFormat,
             'icon' => $entryType->icon,
             'color' => $entryType->color?->value,
         ];
@@ -118,6 +122,10 @@ class UpdateEntryType
             $entryType->titleTranslationKeyFormat = $titleTranslationKeyFormat;
         }
         
+        if ($titleFormat !== null) {
+            $entryType->titleFormat = $titleFormat;
+        }
+        
         if ($icon !== null) {
             $entryType->icon = $icon;
         }
@@ -139,10 +147,17 @@ class UpdateEntryType
         }
         
         // Generate control panel URL
-        $editUrl = UrlHelper::cpUrl('settings/entry-types/' . $entryType->id);
+        $entryTypeId = $entryType->id;
+        if ($entryTypeId === null) {
+            throw new \Exception("Entry type ID is null after save operation");
+        }
+        $editUrl = UrlHelper::cpUrl('settings/entry-types/' . $entryTypeId);
         
         // Refresh the entry type from database to get the actual saved values
-        $savedEntryType = $entriesService->getEntryTypeById($entryType->id);
+        $savedEntryType = $entriesService->getEntryTypeById($entryTypeId);
+        if (!$savedEntryType) {
+            throw new \Exception("Failed to retrieve saved entry type with ID {$entryTypeId}");
+        }
         
         // Determine what changed
         $changes = [];
@@ -152,6 +167,7 @@ class UpdateEntryType
             'hasTitleField' => $savedEntryType->hasTitleField,
             'titleTranslationMethod' => $savedEntryType->titleTranslationMethod,
             'titleTranslationKeyFormat' => $savedEntryType->titleTranslationKeyFormat,
+            'titleFormat' => $savedEntryType->titleFormat,
             'icon' => $savedEntryType->icon,
             'color' => $savedEntryType->color?->value,
         ];
@@ -174,6 +190,7 @@ class UpdateEntryType
             'hasTitleField' => $savedEntryType->hasTitleField,
             'titleTranslationMethod' => $savedEntryType->titleTranslationMethod,
             'titleTranslationKeyFormat' => $savedEntryType->titleTranslationKeyFormat,
+            'titleFormat' => $savedEntryType->titleFormat,
             'icon' => $savedEntryType->icon,
             'color' => $savedEntryType->color?->value,
             'fieldLayoutId' => $savedEntryType->fieldLayoutId,
@@ -182,6 +199,9 @@ class UpdateEntryType
         ];
     }
     
+    /**
+     * @return 'custom'|'language'|'none'|'site'
+     */
     private function getTranslationMethodConstant(string $method): string
     {
         $methodMap = [

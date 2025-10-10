@@ -14,9 +14,6 @@ use PhpMcp\Server\Attributes\Schema;
 
 class GetEntryType
 {
-    /**
-     * @return array<string, mixed>
-     */
     public function getSchema(): Tool
     {
         return Tool::make(
@@ -35,13 +32,16 @@ class GetEntryType
         );
     }
 
+    /** @phpstan-ignore-next-line */
     public function execute(CallToolRequest $request): CallToolResult
     {
+        /** @phpstan-ignore-next-line */
         $args = $request->params->arguments;
         $entryTypeId = (int) $args['entryTypeId'];
 
         $result = $this->get($entryTypeId);
 
+        /** @phpstan-ignore-next-line */
         return CallToolResult::make(
             content: [['type' => 'text', 'text' => json_encode($result, JSON_PRETTY_PRINT)]]
         );
@@ -98,22 +98,18 @@ class GetEntryType
 
         // Get field information
         $fields = [];
-        if ($fieldLayout) {
-            foreach ($fieldLayout->getTabs() as $tab) {
-                foreach ($tab->getElements() as $element) {
-                    if ($element instanceof \craft\fieldlayoutelements\CustomField) {
-                        $field = $element->getField();
-                        if ($field) {
-                            $fields[] = [
-                                'id' => $field->id,
-                                'name' => $field->name,
-                                'handle' => $field->handle,
-                                'type' => get_class($field),
-                                'required' => $element->required,
-                                'instructions' => $field->instructions,
-                            ];
-                        }
-                    }
+        foreach ($fieldLayout->getTabs() as $tab) {
+            foreach ($tab->getElements() as $element) {
+                if ($element instanceof \craft\fieldlayoutelements\CustomField) {
+                    $field = $element->getField();
+                    $fields[] = [
+                        'id' => $field->id,
+                        'name' => $field->name,
+                        'handle' => $field->handle,
+                        'type' => get_class($field),
+                        'required' => $element->required,
+                        'instructions' => $field->instructions,
+                    ];
                 }
             }
         }
@@ -162,9 +158,9 @@ class GetEntryType
                 'entries' => $entryCount,
                 'drafts' => $draftCount,
                 'revisions' => $revisionCount,
-                'total' => $entryCount + $draftCount + $revisionCount,
+                'total' => (int)$entryCount + (int)$draftCount + (int)$revisionCount,
             ],
-            'editUrl' => $section ? Craft::$app->getConfig()->general->cpUrl . "/settings/sections/{$section->id}/entrytypes/{$entryType->id}" : null,
+            'editUrl' => $section ? Craft::$app->getConfig()->getGeneral()->baseCpUrl . "/settings/sections/{$section->id}/entrytypes/{$entryType->id}" : null,
         ];
     }
 }

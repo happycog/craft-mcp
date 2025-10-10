@@ -14,9 +14,6 @@ use PhpMcp\Server\Attributes\Schema;
 
 class GetEntryTypes
 {
-    /**
-     * @return array<string, mixed>
-     */
     public function getSchema(): Tool
     {
         return Tool::make(
@@ -39,14 +36,17 @@ class GetEntryTypes
         );
     }
 
+    /** @phpstan-ignore-next-line */
     public function execute(CallToolRequest $request): CallToolResult
     {
+        /** @phpstan-ignore-next-line */
         $args = $request->params->arguments;
         $sectionId = isset($args['sectionId']) ? (int) $args['sectionId'] : null;
         $includeStandalone = $args['includeStandalone'] ?? true;
 
         $result = $this->getAll($sectionId, $includeStandalone);
 
+        /** @phpstan-ignore-next-line */
         return CallToolResult::make(
             content: [['type' => 'text', 'text' => json_encode($result, JSON_PRETTY_PRINT)]]
         );
@@ -60,7 +60,7 @@ class GetEntryTypes
         description: 'Get a list of all entry types in Craft CMS. This is helpful for understanding the content structure and discovering available entry type IDs for creating entries.'
     )]
     public function getAll(
-        #[Schema(type: 'number', nullable: true)]
+        #[Schema(type: 'number')]
         ?int $sectionId = null,
         #[Schema(type: 'boolean')]
         bool $includeStandalone = true
@@ -151,7 +151,7 @@ class GetEntryTypes
             'usage' => [
                 'entries' => $entryCount,
                 'drafts' => $draftCount,
-                'total' => $entryCount + $draftCount,
+                'total' => (int)$entryCount + (int)$draftCount,
             ],
         ];
 

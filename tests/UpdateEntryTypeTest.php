@@ -29,6 +29,7 @@ beforeEach(function () {
             hasTitleField: $options['hasTitleField'] ?? true,
             titleTranslationMethod: $options['titleTranslationMethod'] ?? 'site',
             titleTranslationKeyFormat: $options['titleTranslationKeyFormat'] ?? null,
+            titleFormat: $options['titleFormat'] ?? null,
             icon: $options['icon'] ?? null,
             color: $options['color'] ?? null
         );
@@ -47,6 +48,7 @@ beforeEach(function () {
             hasTitleField: $updates['hasTitleField'] ?? null,
             titleTranslationMethod: $updates['titleTranslationMethod'] ?? null,
             titleTranslationKeyFormat: $updates['titleTranslationKeyFormat'] ?? null,
+            titleFormat: $updates['titleFormat'] ?? null,
             icon: $updates['icon'] ?? null,
             color: $updates['color'] ?? null
         );
@@ -153,6 +155,22 @@ it('can update translation key format', function () {
     expect($entryType->titleTranslationKeyFormat)->toBe($keyFormat);
 });
 
+it('can update title format', function () {
+    $created = ($this->createEntryType)('Test Entry Type');
+    
+    $titleFormat = '{name} - {dateCreated|date}';
+    $result = ($this->updateEntryType)($created['entryTypeId'], [
+        'titleFormat' => $titleFormat
+    ]);
+    
+    expect($result['titleFormat'])->toBe($titleFormat);
+    expect($result['changes'])->toContain('titleFormat');
+    
+    // Verify in database
+    $entryType = Craft::$app->getEntries()->getEntryTypeById($created['entryTypeId']);
+    expect($entryType->titleFormat)->toBe($titleFormat);
+});
+
 it('can update multiple properties at once', function () {
     $created = ($this->createEntryType)('Original Name');
     
@@ -241,6 +259,7 @@ it('returns all expected response fields', function () {
         'hasTitleField',
         'titleTranslationMethod',
         'titleTranslationKeyFormat',
+        'titleFormat',
         'icon',
         'color',
         'fieldLayoutId',
