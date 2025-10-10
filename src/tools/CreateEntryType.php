@@ -57,6 +57,12 @@ class CreateEntryType
 
         #[Schema(type: 'string', description: 'A short string describing the purpose of the entry type (optional)')]
         ?string $description = null,
+
+        #[Schema(type: 'boolean', description: 'Whether entries of this type show the slug field in the admin UI')]
+        bool $showSlugField = true,
+
+        #[Schema(type: 'boolean', description: 'Whether entries of this type show the status field in the admin UI')]
+        bool $showStatusField = true,
     ): array
     {
         $entriesService = Craft::$app->getEntries();
@@ -78,6 +84,8 @@ class CreateEntryType
         $entryType->titleFormat = $titleFormat;
         $entryType->icon = $icon;
         $entryType->color = $color ? Color::tryFrom($color) : null;
+        $entryType->showSlugField = $showSlugField;
+        $entryType->showStatusField = $showStatusField;
 
         // If hasTitleField is true, ensure the field layout includes the title field
         if ($hasTitleField) {
@@ -112,6 +120,8 @@ class CreateEntryType
             'titleFormat' => $savedEntryType->titleFormat,
             'icon' => $savedEntryType->icon,
             'color' => $savedEntryType->color?->value,
+            'showSlugField' => $savedEntryType->showSlugField,
+            'showStatusField' => $savedEntryType->showStatusField,
             'fieldLayoutId' => $savedEntryType->fieldLayoutId,
             'editUrl' => $editUrl,
         ];

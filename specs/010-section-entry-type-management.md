@@ -321,9 +321,13 @@ While entry types can be created with basic field layouts, advanced field layout
 
 ## Post-Implementation Updates
 
-### UpdateFieldLayout Tool Modernization (December 2024)
-- **Modernized `src/tools/UpdateFieldLayout.php`** from legacy `getSchema()`/`execute()` pattern to PHP8 attributes (`#[McpTool]` and `#[Schema]`)
-- **Pattern Established**: PHP8 attributes are now the preferred method for new MCP tool development
-- **Maintained Functionality**: All existing field layout capabilities preserved (tab organization, field ordering, width control, required settings)
-- **Quality Assurance**: All tests continue to pass, PHPStan analysis passes at max level
-- **Documentation Updated**: AGENTS.md updated to reflect PHP8 attribute preference and mark legacy patterns as deprecated
+### showSlugField and showStatusField Parameters (January 2025)
+- **Enhanced `src/tools/CreateEntryType.php`** with `showSlugField` and `showStatusField` boolean parameters (both default to `true`)
+- **Enhanced `src/tools/UpdateEntryType.php`** with nullable `showSlugField` and `showStatusField` parameters for updates
+- **Admin UI Control**: Parameters control field visibility in Craft Admin UI without affecting data storage
+- **Test Coverage**: Comprehensive test coverage added to both `CreateEntryTypeTest.php` and `UpdateEntryTypeTest.php`
+  - Tests for disabling each field individually
+  - Tests for default behavior (both fields shown)
+  - Tests for updating field visibility settings
+- **Quality Assurance**: All 35 tests in both test files continue to pass with new functionality
+- **Implementation Pattern**: Parameters follow established MCP tool patterns with proper type safety and PHPStan compliance

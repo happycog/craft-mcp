@@ -56,6 +56,12 @@ class UpdateEntryType
 
         #[Schema(type: 'string', description: 'A short string describing the purpose of the entry type (optional)')]
         ?string $description = null,
+
+        #[Schema(type: 'boolean', description: 'Whether entries of this type show the slug field in the admin UI')]
+        ?bool $showSlugField = null,
+
+        #[Schema(type: 'boolean', description: 'Whether entries of this type show the status field in the admin UI')]
+        ?bool $showStatusField = null,
     ): array
     {
         $entriesService = Craft::$app->getEntries();
@@ -77,6 +83,8 @@ class UpdateEntryType
             'titleFormat' => $entryType->titleFormat,
             'icon' => $entryType->icon,
             'color' => $entryType->color?->value,
+            'showSlugField' => $entryType->showSlugField,
+            'showStatusField' => $entryType->showStatusField,
         ];
 
         // Update properties if provided
@@ -112,6 +120,14 @@ class UpdateEntryType
             $entryType->color = $this->getColorEnum($color);
         }
 
+        if ($showSlugField !== null) {
+            $entryType->showSlugField = $showSlugField;
+        }
+
+        if ($showStatusField !== null) {
+            $entryType->showStatusField = $showStatusField;
+        }
+
         // Save the updated entry type
         throw_unless($entriesService->saveEntryType($entryType), ModelSaveException::class, $entryType);
 
@@ -139,6 +155,8 @@ class UpdateEntryType
             'titleFormat' => $savedEntryType->titleFormat,
             'icon' => $savedEntryType->icon,
             'color' => $savedEntryType->color?->value,
+            'showSlugField' => $savedEntryType->showSlugField,
+            'showStatusField' => $savedEntryType->showStatusField,
         ];
 
         foreach ($newValues as $key => $newValue) {
@@ -162,6 +180,8 @@ class UpdateEntryType
             'titleFormat' => $savedEntryType->titleFormat,
             'icon' => $savedEntryType->icon,
             'color' => $savedEntryType->color?->value,
+            'showSlugField' => $savedEntryType->showSlugField,
+            'showStatusField' => $savedEntryType->showStatusField,
             'fieldLayoutId' => $savedEntryType->fieldLayoutId,
             'editUrl' => $editUrl,
             'changes' => $changes,

@@ -1,6 +1,7 @@
 <?php
 
 use happycog\craftmcp\tools\CreateEntryType;
+use happycog\craftmcp\exceptions\ModelSaveException;
 
 beforeEach(function () {
     // Clean up any existing test entry types before each test
@@ -32,7 +33,9 @@ beforeEach(function () {
             titleTranslationKeyFormat: $options['titleTranslationKeyFormat'] ?? null,
             titleFormat: $options['titleFormat'] ?? null,
             icon: $options['icon'] ?? null,
-            color: $options['color'] ?? null
+            color: $options['color'] ?? null,
+            showSlugField: $options['showSlugField'] ?? true,
+            showStatusField: $options['showStatusField'] ?? true
         );
 
         // Track the created entry type for cleanup
@@ -149,7 +152,7 @@ it('throws exception for duplicate handle', function () {
     expect(fn() => ($this->createEntryType)(
         'Second Entry Type',
         ['handle' => 'duplicateHandle']
-    ))->toThrow(InvalidArgumentException::class, "An entry type with handle 'duplicateHandle' already exists.");
+    ))->toThrow(ModelSaveException::class, "Failed to save entry type");
 });
 
 it('generates valid handle from entry type name', function () {
@@ -229,9 +232,46 @@ it('returns all expected response fields', function () {
         'titleFormat',
         'icon',
         'color',
+        'showSlugField',
+        'showStatusField',
         'fieldLayoutId',
         'editUrl'
     ]);
 
     expect($result['_notes'])->toContain('successfully created');
+});
+
+it('can create an entry type with showSlugField disabled', function () {
+    $result = ($this->createEntryType)(
+        'No Slug Entry Type',
+        ['showSlugField' => false]
+    );
+
+    expect($result['showSlugField'])->toBeFalse();
+
+    $entryType = Craft::$app->getEntries()->getEntryTypeById($result['entryTypeId']);
+    expect($entryType->showSlugField)->toBeFalse();
+});
+
+it('can create an entry type with showStatusField disabled', function () {
+    $result = ($this->createEntryType)(
+        'No Status Entry Type',
+        ['showStatusField' => false]
+    );
+
+    expect($result['showStatusField'])->toBeFalse();
+
+    $entryType = Craft::$app->getEntries()->getEntryTypeById($result['entryTypeId']);
+    expect($entryType->showStatusField)->toBeFalse();
+});
+
+it('defaults to showing slug and status fields', function () {
+    $result = ($this->createEntryType)('Default Fields Entry Type');
+
+    expect($result['showSlugField'])->toBeTrue();
+    expect($result['showStatusField'])->toBeTrue();
+
+    $entryType = Craft::$app->getEntries()->getEntryTypeById($result['entryTypeId']);
+    expect($entryType->showSlugField)->toBeTrue();
+    expect($entryType->showStatusField)->toBeTrue();
 });

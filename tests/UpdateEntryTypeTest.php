@@ -50,7 +50,9 @@ beforeEach(function () {
             titleFormat: $updates['titleFormat'] ?? null,
             icon: $updates['icon'] ?? null,
             color: $updates['color'] ?? null,
-            description: $updates['description'] ?? null
+            description: $updates['description'] ?? null,
+            showSlugField: $updates['showSlugField'] ?? null,
+            showStatusField: $updates['showStatusField'] ?? null
         );
     };
 });
@@ -246,8 +248,55 @@ it('returns all expected response fields', function () {
         'titleFormat',
         'icon',
         'color',
+        'showSlugField',
+        'showStatusField',
         'fieldLayoutId',
         'editUrl',
         'changes'
     ]);
+});
+
+it('can update showSlugField', function () {
+    $created = ($this->createEntryType)('Test Entry Type');
+
+    $result = ($this->updateEntryType)($created['entryTypeId'], ['showSlugField' => false]);
+
+    expect($result['showSlugField'])->toBeFalse();
+    expect($result['changes'])->toContain('showSlugField');
+
+    // Verify in database
+    $entryType = Craft::$app->getEntries()->getEntryTypeById($created['entryTypeId']);
+    expect($entryType->showSlugField)->toBeFalse();
+});
+
+it('can update showStatusField', function () {
+    $created = ($this->createEntryType)('Test Entry Type');
+
+    $result = ($this->updateEntryType)($created['entryTypeId'], ['showStatusField' => false]);
+
+    expect($result['showStatusField'])->toBeFalse();
+    expect($result['changes'])->toContain('showStatusField');
+
+    // Verify in database
+    $entryType = Craft::$app->getEntries()->getEntryTypeById($created['entryTypeId']);
+    expect($entryType->showStatusField)->toBeFalse();
+});
+
+it('can update both showSlugField and showStatusField', function () {
+    $created = ($this->createEntryType)('Test Entry Type');
+
+    $result = ($this->updateEntryType)($created['entryTypeId'], [
+        'showSlugField' => false,
+        'showStatusField' => false
+    ]);
+
+    expect($result['showSlugField'])->toBeFalse();
+    expect($result['showStatusField'])->toBeFalse();
+    expect($result['changes'])->toContain('showSlugField');
+    expect($result['changes'])->toContain('showStatusField');
+
+    // Verify in database
+    $entryType = Craft::$app->getEntries()->getEntryTypeById($created['entryTypeId']);
+    expect($entryType->showSlugField)->toBeFalse();
+    expect($entryType->showStatusField)->toBeFalse();
 });
