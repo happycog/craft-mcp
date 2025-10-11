@@ -6,81 +6,53 @@ namespace happycog\craftmcp\tools;
 
 use Craft;
 use craft\models\EntryType;
+use craft\models\Section;
 use PhpMcp\Server\Attributes\McpTool;
 use PhpMcp\Server\Attributes\Schema;
+use happycog\craftmcp\actions\FieldFormatter;
 
 class GetEntryTypes
 {
+    public function __construct(
+        protected FieldFormatter $fieldFormatter,
+    ) {
+    }
+
 
     /**
-     * @return array<string, mixed>
+     * @param array<int>|null $entryTypeIds
+     * @return array<int, array<string, mixed>>
      */
     #[McpTool(
         name: 'get_entry_types',
-        description: 'Get a list of all entry types in Craft CMS. This is helpful for understanding the content structure and discovering available entry type IDs for creating entries.'
+        description: 'Get a list of entry types with complete field information, usage stats, and edit URLs.'
     )]
     public function getAll(
-        #[Schema(type: 'number', description: 'Optional section ID to filter entry types by section')]
-        ?int $sectionId = null,
-        #[Schema(type: 'boolean', description: 'Whether to include standalone entry types (not associated with sections). Default: true')]
-        bool $includeStandalone = true
+        #[Schema(type: 'array', items: ['type' => 'number'], description: 'Optional list of entry type IDs to limit results')]
+        ?array $entryTypeIds = null
     ): array
     {
         $entriesService = Craft::$app->getEntries();
-        $allEntryTypes = [];
-        $sectionEntryTypes = [];
-        $standaloneEntryTypes = [];
 
-        // Get all sections and their entry types
-        $sections = $entriesService->getAllSections();
-        foreach ($sections as $section) {
-            // If filtering by section, skip other sections
-            if ($sectionId !== null && $section->id !== $sectionId) {
+        // Map entry type IDs to their sections (if any)
+        $sectionByEntryTypeId = [];
+        foreach ($entriesService->getAllSections() as $section) {
+            foreach ($section->getEntryTypes() as $et) {
+                $sectionByEntryTypeId[$et->id] = $section;
+            }
+        }
+
+        $results = [];
+        foreach ($entriesService->getAllEntryTypes() as $entryType) {
+            if (is_array($entryTypeIds) && $entryTypeIds !== [] && !in_array($entryType->id, $entryTypeIds, true)) {
                 continue;
             }
-
-            foreach ($section->getEntryTypes() as $entryType) {
-                $entryTypeData = $this->formatEntryType($entryType, $section);
-                $sectionEntryTypes[] = $entryTypeData;
-                $allEntryTypes[$entryType->id] = true; // Track all section-associated entry types
-            }
+            /** @var Section|null $section */
+            $section = $sectionByEntryTypeId[$entryType->id] ?? null;
+            $results[] = $this->formatEntryType($entryType, $section);
         }
 
-        // If including standalone entry types, find those not associated with any section
-        if ($includeStandalone && $sectionId === null) {
-            $allEntryTypesFromService = $entriesService->getAllEntryTypes();
-            foreach ($allEntryTypesFromService as $entryType) {
-                // Only include if not already found in sections
-                if (!isset($allEntryTypes[$entryType->id])) {
-                    $entryTypeData = $this->formatEntryType($entryType, null);
-                    $standaloneEntryTypes[] = $entryTypeData;
-                }
-            }
-        }
-
-        // Build response
-        $response = [
-            '_notes' => [
-                'Entry types define the content structure and field layouts for entries',
-                'Section-associated entry types are used for regular content creation',
-                'Standalone entry types are often used for Matrix fields or other specialized content',
-                'Use the entryTypeId when creating new entries with CreateEntry or CreateDraft'
-            ],
-            'sectionEntryTypes' => $sectionEntryTypes,
-        ];
-
-        if ($includeStandalone && $sectionId === null) {
-            $response['standaloneEntryTypes'] = $standaloneEntryTypes;
-        }
-
-        $response['summary'] = [
-            'sectionEntryTypes' => count($sectionEntryTypes),
-            'standaloneEntryTypes' => count($standaloneEntryTypes),
-            'total' => count($sectionEntryTypes) + count($standaloneEntryTypes),
-            'filteredBySection' => $sectionId !== null ? $sectionId : null,
-        ];
-
-        return $response;
+        return $results;
     }
 
     /**
@@ -98,6 +70,10 @@ class GetEntryTypes
             ->drafts()
             ->count();
 
+        // Fields via layout with context
+        $layout = $entryType->getFieldLayout();
+        $fields = $this->fieldFormatter->formatFieldsForLayout($layout);
+
         // Build entry type data
         $entryTypeData = [
             'id' => $entryType->id,
@@ -108,6 +84,7 @@ class GetEntryTypes
             'titleFormat' => $entryType->titleFormat,
             'fieldLayoutId' => $entryType->fieldLayoutId,
             'uid' => $entryType->uid,
+            'fields' => $fields,
             'usage' => [
                 'entries' => $entryCount,
                 'drafts' => $draftCount,

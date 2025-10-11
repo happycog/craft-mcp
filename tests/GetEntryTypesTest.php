@@ -4,117 +4,55 @@ declare(strict_types=1);
 
 use happycog\craftmcp\tools\GetEntryTypes;
 
-test('GetEntryTypes getAll returns structured data', function () {
-    $tool = new GetEntryTypes();
+it('GetEntryTypes getAll returns a flat list of entry types with fields', function () {
+    $tool = Craft::$container->get(GetEntryTypes::class);
     $result = $tool->getAll();
-    
+
     expect($result)->toBeArray();
-    expect($result)->toHaveKey('_notes');
-    expect($result)->toHaveKey('sectionEntryTypes');
-    expect($result)->toHaveKey('standaloneEntryTypes');
-    expect($result)->toHaveKey('summary');
-    
-    // Check summary structure
-    expect($result['summary'])->toHaveKey('sectionEntryTypes');
-    expect($result['summary'])->toHaveKey('standaloneEntryTypes');
-    expect($result['summary'])->toHaveKey('total');
-    expect($result['summary'])->toHaveKey('filteredBySection');
+    expect(count($result))->toBeGreaterThan(0);
+
+    $first = $result[0];
+    expect($first)->toHaveKeys([
+        'id', 'name', 'handle', 'hasTitleField', 'fieldLayoutId', 'uid', 'usage', 'section', 'editUrl', 'fields'
+    ]);
+    expect($first['fields'])->toBeArray();
 });
 
-test('GetEntryTypes getAll respects sectionId filter', function () {
-    $tool = new GetEntryTypes();
-    
-    // Get all entry types first to find a valid section ID
-    $allResult = $tool->getAll();
-    
-    if (!empty($allResult['sectionEntryTypes'])) {
-        $firstEntryType = $allResult['sectionEntryTypes'][0];
-        $sectionId = $firstEntryType['section']['id'];
-        
-        // Filter by that section
-        $filteredResult = $tool->getAll($sectionId);
-        
-        expect($filteredResult['summary']['filteredBySection'])->toBe($sectionId);
-        expect($filteredResult)->not->toHaveKey('standaloneEntryTypes'); // Should not include standalone when filtering by section
-        
-        // All returned entry types should belong to the specified section
-        foreach ($filteredResult['sectionEntryTypes'] as $entryType) {
-            expect($entryType['section']['id'])->toBe($sectionId);
+it('GetEntryTypes getAll respects entryTypeIds filter', function () {
+    $tool = Craft::$container->get(GetEntryTypes::class);
+    $all = $tool->getAll();
+
+    $firstId = $all[0]['id'] ?? null;
+    if ($firstId) {
+        $filtered = $tool->getAll([$firstId]);
+        expect($filtered)->toHaveCount(1);
+        expect($filtered[0]['id'])->toBe($firstId);
+    }
+});
+
+it('GetEntryTypes entry type format includes usage and section data', function () {
+    $tool = Craft::$container->get(GetEntryTypes::class);
+    $all = $tool->getAll();
+
+    $entryType = $all[0];
+    expect($entryType['usage'])->toHaveKeys(['entries', 'drafts', 'total']);
+
+    // Section may be null for standalone types; if present, ensure it has expected keys
+    if ($entryType['section'] !== null) {
+        expect($entryType['section'])->toHaveKeys(['id', 'name', 'handle', 'type']);
+    }
+});
+
+it('GetEntryTypes fields include required layout context', function () {
+    $tool = Craft::$container->get(GetEntryTypes::class);
+    $all = $tool->getAll();
+
+    // Find an entry type with fields
+    foreach ($all as $et) {
+        if (!empty($et['fields'])) {
+            $field = $et['fields'][0];
+            expect($field)->toHaveKeys(['id','handle','name','type','instructions','required']);
+            break;
         }
     }
-});
-
-test('GetEntryTypes getAll respects includeStandalone parameter', function () {
-    $tool = new GetEntryTypes();
-    
-    // Test excluding standalone entry types
-    $resultWithoutStandalone = $tool->getAll(null, false);
-    expect($resultWithoutStandalone)->not->toHaveKey('standaloneEntryTypes');
-    
-    // Test including standalone entry types (default behavior)
-    $resultWithStandalone = $tool->getAll(null, true);
-    expect($resultWithStandalone)->toHaveKey('standaloneEntryTypes');
-});
-
-test('GetEntryTypes entry type format includes required fields', function () {
-    $tool = new GetEntryTypes();
-    $result = $tool->getAll();
-    
-    if (!empty($result['sectionEntryTypes'])) {
-        $entryType = $result['sectionEntryTypes'][0];
-        
-        // Check required entry type fields
-        expect($entryType)->toHaveKey('id');
-        expect($entryType)->toHaveKey('name');
-        expect($entryType)->toHaveKey('handle');
-        expect($entryType)->toHaveKey('hasTitleField');
-        expect($entryType)->toHaveKey('fieldLayoutId');
-        expect($entryType)->toHaveKey('uid');
-        expect($entryType)->toHaveKey('usage');
-        expect($entryType)->toHaveKey('section');
-        expect($entryType)->toHaveKey('editUrl');
-        
-        // Check usage statistics structure
-        expect($entryType['usage'])->toHaveKey('entries');
-        expect($entryType['usage'])->toHaveKey('drafts');
-        expect($entryType['usage'])->toHaveKey('total');
-        
-        // Check section structure (if present)
-        if ($entryType['section'] !== null) {
-            expect($entryType['section'])->toHaveKey('id');
-            expect($entryType['section'])->toHaveKey('name');
-            expect($entryType['section'])->toHaveKey('handle');
-            expect($entryType['section'])->toHaveKey('type');
-        }
-    }
-});
-
-test('GetEntryTypes handles standalone entry types correctly', function () {
-    $tool = new GetEntryTypes();
-    $result = $tool->getAll();
-    
-    if (!empty($result['standaloneEntryTypes'])) {
-        $standaloneEntryType = $result['standaloneEntryTypes'][0];
-        
-        // Standalone entry types should have null section
-        expect($standaloneEntryType['section'])->toBeNull();
-        expect($standaloneEntryType['editUrl'])->toBeNull();
-        
-        // But should still have all other required fields
-        expect($standaloneEntryType)->toHaveKey('id');
-        expect($standaloneEntryType)->toHaveKey('name');
-        expect($standaloneEntryType)->toHaveKey('handle');
-        expect($standaloneEntryType)->toHaveKey('usage');
-    }
-});
-
-test('GetEntryTypes summary counts are accurate', function () {
-    $tool = new GetEntryTypes();
-    $result = $tool->getAll();
-    
-    $expectedTotal = count($result['sectionEntryTypes']) + count($result['standaloneEntryTypes']);
-    
-    expect($result['summary']['sectionEntryTypes'])->toBe(count($result['sectionEntryTypes']));
-    expect($result['summary']['standaloneEntryTypes'])->toBe(count($result['standaloneEntryTypes']));
-    expect($result['summary']['total'])->toBe($expectedTotal);
 });
