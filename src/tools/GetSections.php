@@ -5,12 +5,12 @@ namespace happycog\craftmcp\tools;
 use Craft;
 use PhpMcp\Server\Attributes\McpTool;
 use PhpMcp\Server\Attributes\Schema;
-use happycog\craftmcp\actions\FieldFormatter;
+use happycog\craftmcp\actions\EntryTypeFormatter;
 
 class GetSections
 {
     public function __construct(
-        protected FieldFormatter $fieldFormatter,
+        protected EntryTypeFormatter $entryTypeFormatter,
     ) {
     }
 
@@ -46,15 +46,7 @@ class GetSections
 
             $entryTypes = [];
             foreach ($section->getEntryTypes() as $entryType) {
-                $layout = $entryType->getFieldLayout();
-                $fields = $this->fieldFormatter->formatFieldsForLayout($layout);
-                $entryTypes[] = [
-                    'id' => $entryType->id,
-                    'handle' => $entryType->handle,
-                    'name' => $entryType->name,
-                    'fieldLayoutId' => $entryType->fieldLayoutId,
-                    'fields' => $fields,
-                ];
+                $entryTypes[] = $this->entryTypeFormatter->formatEntryType($entryType, false);
             }
 
             $result[] = [

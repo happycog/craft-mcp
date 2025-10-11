@@ -11,7 +11,7 @@ This is a Craft CMS plugin that implements a Model Context Protocol (MCP) server
 - **Transport Layer**: Custom HTTP transport integrated with Yii2 routing (Craft's underlying framework)
 - **Session Management**: Custom session handler using Craft's caching system
 - **Testing**: Pest PHP testing framework with craft-pest-core
-- **Package Management**: 
+- **Package Management**:
   - PHP: Composer
 - **Build Tool**: None required (server-side PHP plugin)
 
@@ -24,7 +24,7 @@ This is a Craft CMS plugin that implements a Model Context Protocol (MCP) server
 │   │   └── UpsertEntry.php          # Entry creation/update action
 │   ├── attributes/
 │   │   ├── BindToContainer.php      # DI container binding attribute
-│   │   ├── Init.php                 # Initialization attribute  
+│   │   ├── Init.php                 # Initialization attribute
 │   │   └── RegisterListener.php     # Event listener registration
 │   ├── base/
 │   │   └── Plugin.php               # Base plugin class with DI
@@ -179,20 +179,20 @@ class ExampleTool
         name: 'example_tool', // Use snake_case, NO craft_ prefix
         description: <<<'END'
         Example tool description that supports multiple lines.
-        
-        After performing action always link the user back to the relevant page in the Craft 
+
+        After performing action always link the user back to the relevant page in the Craft
         control panel so they can review the changes in the context of the Craft UI.
         END
     )]
     public function performAction(
         #[Schema(type: 'string', description: 'Parameter description')]
         string $parameter,
-        
+
         #[Schema(type: 'integer', description: 'Optional number parameter')]
         ?int $optionalNumber = null
     ): array {
         // Tool implementation logic
-        
+
         return [
             'success' => true,
             'result' => 'Tool executed successfully',
@@ -232,9 +232,9 @@ class LegacyExampleTool
     public function execute(CallToolRequest $request): CallToolResult
     {
         $args = $request->params->arguments;
-        
+
         // Tool implementation logic
-        
+
         return CallToolResult::make(
             content: [['type' => 'text', 'text' => 'Tool result']]
         );
@@ -282,9 +282,9 @@ Use Pest with Craft-specific patterns:
 test('tool executes successfully', function () {
     $tool = new ExampleTool();
     $request = CallToolRequest::make(/* ... */);
-    
+
     $result = $tool->execute($request);
-    
+
     expect($result)->toBeInstanceOf(CallToolResult::class);
 });
 
@@ -296,7 +296,7 @@ test('endpoint returns valid response', function () {
         'method' => 'tools/call',
         'params' => [/* ... */]
     ]);
-    
+
     $response->assertStatus(200);
     $data = $response->json();
     expect($data['jsonrpc'])->toBe('2.0');
@@ -399,6 +399,37 @@ test('endpoint returns valid response', function () {
 - **Standalone Entry Types**: Entry types can exist without being associated with sections (commonly used for Matrix fields)
 - **Control Panel URLs**: Section-dependent edit URLs should be null when entry type isn't associated with a section
 - **Testing Pattern**: When testing tools that work with entry types created via CreateEntryType, expect section to be null initially
+
+### Entry Type Usage Detection (Added in this session)
+- **Purpose**: The `EntryTypeFormatter.php` now includes a `usedBy` key that shows which sections and Matrix fields reference an entry type
+- **Implementation**: Uses `findEntryTypeUsage()` method to discover relationships through Craft's APIs
+- **Section Discovery Pattern**:
+  ```php
+  $sections = $entriesService->getAllSections();
+  foreach ($sections as $section) {
+      foreach ($section->getEntryTypes() as $sectionEntryType) {
+          if ($sectionEntryType->id === $entryType->id) {
+              // Entry type is used by this section
+          }
+      }
+  }
+  ```
+- **Matrix Field Discovery Pattern**:
+  ```php
+  $allFields = $fieldsService->getAllFields('global');
+  foreach ($allFields as $field) {
+      if ($field instanceof Matrix) {
+          foreach ($field->getEntryTypes() as $blockType) {
+              if ($blockType->id === $entryType->id) {
+                  // Entry type is used as a block type in this Matrix field
+              }
+          }
+      }
+  }
+  ```
+- **Return Structure**: The `usedBy` key contains arrays for `sections` and `matrixFields`, each with id, name, handle, and type information
+- **Performance**: Usage detection runs on each formatter call - consider caching for high-volume scenarios
+- **Testing**: Use `EntryTypeFormatterTest.php` patterns for testing usage detection functionality
 - **CRITICAL**: Craft 5.x uses specific property names for draft metadata
 - Use `$draft->draftName`, `$draft->draftNotes`, `$draft->isProvisionalDraft` (NOT `revisionName`/`revisionNotes`)
 - Draft creation: `Craft::$app->getDrafts()->createDraft($canonicalEntry, $creatorId, $name, $notes, $attributes)`
@@ -426,12 +457,12 @@ test('endpoint returns valid response', function () {
   ```php
   // Import ModelSaveException in tool files
   use happycog\craftmcp\exceptions\ModelSaveException;
-  
+
   // PREFERRED: Concise throw_unless pattern
   throw_unless($entriesService->saveEntryType($entryType), ModelSaveException::class, $entryType);
   throw_unless($fieldsService->saveField($field), ModelSaveException::class, $field);
   throw_unless($sectionsService->deleteSection($section), ModelSaveException::class, $section);
-  
+
   // ANTI-PATTERN: Verbose if/throw blocks (avoid these)
   if (!$entriesService->saveEntryType($entryType)) {
       throw new ModelSaveException($entryType);
@@ -449,10 +480,10 @@ test('endpoint returns valid response', function () {
   // PREFERRED: Simple error message (helpers auto-instantiate RuntimeException)
   throw_unless($entry, "Entry with ID {$entryId} not found");
   throw_if($sectionId === null, 'sectionId is required for new entries');
-  
+
   // ALTERNATIVE: Explicit exception class for non-RuntimeException cases
   throw_unless($user, \InvalidArgumentException::class, 'User cannot be null');
-  
+
   // ANTI-PATTERN: Verbose if/throw patterns (avoid these)
   if (!$entry) {
       throw new \RuntimeException("Entry with ID {$entryId} not found");
@@ -470,7 +501,7 @@ test('endpoint returns valid response', function () {
   ```php
   // PREFERRED: Concise null coalescing assignment
   $siteId ??= Craft::$app->getSites()->getPrimarySite()->id;
-  
+
   // ANTI-PATTERN: Verbose null check (avoid these)
   if ($siteId === null) {
       $siteId = Craft::$app->getSites()->getPrimarySite()->id;
@@ -494,7 +525,7 @@ test('endpoint returns valid response', function () {
   if (!$entry instanceof Entry) {
       throw new \InvalidArgumentException("Entry not found");
   }
-  
+
   // INCORRECT: Loose null check
   if (!$entry) {
       throw new \InvalidArgumentException("Entry not found");

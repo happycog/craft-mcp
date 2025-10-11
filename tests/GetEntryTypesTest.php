@@ -13,7 +13,7 @@ it('GetEntryTypes getAll returns a flat list of entry types with fields', functi
 
     $first = $result[0];
     expect($first)->toHaveKeys([
-        'id', 'name', 'handle', 'hasTitleField', 'fieldLayoutId', 'uid', 'usage', 'section', 'editUrl', 'fields'
+        'id', 'name', 'handle', 'hasTitleField', 'fieldLayoutId', 'uid', 'editUrl', 'fields'
     ]);
     expect($first['fields'])->toBeArray();
 });
@@ -30,17 +30,14 @@ it('GetEntryTypes getAll respects entryTypeIds filter', function () {
     }
 });
 
-it('GetEntryTypes entry type format includes usage and section data', function () {
+it('GetEntryTypes entry type format includes edit URL', function () {
     $tool = Craft::$container->get(GetEntryTypes::class);
     $all = $tool->getAll();
 
     $entryType = $all[0];
-    expect($entryType['usage'])->toHaveKeys(['entries', 'drafts', 'total']);
 
-    // Section may be null for standalone types; if present, ensure it has expected keys
-    if ($entryType['section'] !== null) {
-        expect($entryType['section'])->toHaveKeys(['id', 'name', 'handle', 'type']);
-    }
+    // Entry type should have an edit URL
+    expect($entryType)->toHaveKey('editUrl');
 });
 
 it('GetEntryTypes fields include required layout context', function () {
