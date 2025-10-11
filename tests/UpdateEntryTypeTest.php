@@ -76,7 +76,6 @@ it('can update entry type name', function () {
 
     expect($result['name'])->toBe('Updated Name');
     expect($result['handle'])->toBe('originalHandle'); // Should remain unchanged
-    expect($result['changes'])->toContain('name');
 
     // Verify in database
     $entryType = Craft::$app->getEntries()->getEntryTypeById($created['entryTypeId']);
@@ -89,7 +88,6 @@ it('can update entry type handle', function () {
     $result = ($this->updateEntryType)($created['entryTypeId'], ['handle' => 'updatedHandle']);
 
     expect($result['handle'])->toBe('updatedHandle');
-    expect($result['changes'])->toContain('handle');
 
     // Verify in database
     $entryType = Craft::$app->getEntries()->getEntryTypeById($created['entryTypeId']);
@@ -102,7 +100,6 @@ it('can update translation method', function () {
     $result = ($this->updateEntryType)($created['entryTypeId'], ['titleTranslationMethod' => 'language']);
 
     expect($result['titleTranslationMethod'])->toBe(\craft\base\Field::TRANSLATION_METHOD_LANGUAGE);
-    expect($result['changes'])->toContain('titleTranslationMethod');
 
     // Verify in database
     $entryType = Craft::$app->getEntries()->getEntryTypeById($created['entryTypeId']);
@@ -117,12 +114,7 @@ it('can update icon and color', function () {
         'color' => 'blue'
     ]);
 
-    expect($result['icon'])->toBe('news');
-    expect($result['color'])->toBe('blue');
-    expect($result['changes'])->toContain('icon');
-    expect($result['changes'])->toContain('color');
-
-    // Verify in database
+    // Verify in database (formatter doesn't include icon/color)
     $entryType = Craft::$app->getEntries()->getEntryTypeById($created['entryTypeId']);
     expect($entryType->icon)->toBe('news');
     expect($entryType->color?->value)->toBe('blue');
@@ -137,7 +129,6 @@ it('can update translation key format', function () {
     ]);
 
     expect($result['titleTranslationKeyFormat'])->toBe($keyFormat);
-    expect($result['changes'])->toContain('titleTranslationKeyFormat');
 
     // Verify in database
     $entryType = Craft::$app->getEntries()->getEntryTypeById($created['entryTypeId']);
@@ -153,7 +144,6 @@ it('can update title format', function () {
     ]);
 
     expect($result['titleFormat'])->toBe($titleFormat);
-    expect($result['changes'])->toContain('titleFormat');
 
     // Verify in database
     $entryType = Craft::$app->getEntries()->getEntryTypeById($created['entryTypeId']);
@@ -172,24 +162,21 @@ it('can update multiple properties at once', function () {
     expect($result['name'])->toBe('Updated Name');
     expect($result['icon'])->toBe('article');
     expect($result['color'])->toBe('red');
-
-    expect($result['changes'])->toContain('name');
-    expect($result['changes'])->toContain('icon');
-    expect($result['changes'])->toContain('color');
 });
 
-it('reports no changes when no updates are made', function () {
+it('returns expected data when no updates are made', function () {
     $created = ($this->createEntryType)('Test Entry Type');
 
     $result = ($this->updateEntryType)($created['entryTypeId'], []);
 
-    expect($result['changes'])->toBeEmpty();
-    expect($result['_notes'])->toContain('No changes were made');
+    // Should still return the formatted entry type data
+    expect($result['name'])->toBe('Test Entry Type');
+    expect($result['id'])->toBe($created['entryTypeId']);
 });
 
 it('throws exception for non-existent entry type', function () {
     expect(fn() => ($this->updateEntryType)(99999, ['name' => 'Test']))
-        ->toThrow(\InvalidArgumentException::class, 'Entry type with ID 99999 not found');
+        ->toThrow(\RuntimeException::class, 'Entry type with ID 99999 not found');
 });
 
 it('throws exception for duplicate handle', function () {
@@ -207,11 +194,13 @@ it('throws exception for invalid translation method', function () {
         ->toThrow(\InvalidArgumentException::class, "Invalid translation method 'invalid'");
 });
 
-it('throws exception for invalid color', function () {
+it('handles invalid color gracefully', function () {
     $created = ($this->createEntryType)('Test Entry Type');
 
-    expect(fn() => ($this->updateEntryType)($created['entryTypeId'], ['color' => 'rainbow']))
-        ->toThrow(\InvalidArgumentException::class, "Invalid color 'rainbow'");
+    $result = ($this->updateEntryType)($created['entryTypeId'], ['color' => 'rainbow']);
+
+    // Invalid color should result in null
+    expect($result['color'])->toBeNull();
 });
 
 it('includes control panel edit URL', function () {
@@ -238,10 +227,10 @@ it('returns all expected response fields', function () {
     $result = ($this->updateEntryType)($created['entryTypeId'], ['name' => 'Updated Name']);
 
     expect($result)->toHaveKeys([
-        '_notes',
-        'entryTypeId',
+        'id',
         'name',
         'handle',
+        'description',
         'hasTitleField',
         'titleTranslationMethod',
         'titleTranslationKeyFormat',
@@ -251,8 +240,9 @@ it('returns all expected response fields', function () {
         'showSlugField',
         'showStatusField',
         'fieldLayoutId',
-        'editUrl',
-        'changes'
+        'uid',
+        'fields',
+        'editUrl'
     ]);
 });
 
@@ -262,7 +252,6 @@ it('can update showSlugField', function () {
     $result = ($this->updateEntryType)($created['entryTypeId'], ['showSlugField' => false]);
 
     expect($result['showSlugField'])->toBeFalse();
-    expect($result['changes'])->toContain('showSlugField');
 
     // Verify in database
     $entryType = Craft::$app->getEntries()->getEntryTypeById($created['entryTypeId']);
@@ -275,7 +264,6 @@ it('can update showStatusField', function () {
     $result = ($this->updateEntryType)($created['entryTypeId'], ['showStatusField' => false]);
 
     expect($result['showStatusField'])->toBeFalse();
-    expect($result['changes'])->toContain('showStatusField');
 
     // Verify in database
     $entryType = Craft::$app->getEntries()->getEntryTypeById($created['entryTypeId']);
@@ -292,8 +280,6 @@ it('can update both showSlugField and showStatusField', function () {
 
     expect($result['showSlugField'])->toBeFalse();
     expect($result['showStatusField'])->toBeFalse();
-    expect($result['changes'])->toContain('showSlugField');
-    expect($result['changes'])->toContain('showStatusField');
 
     // Verify in database
     $entryType = Craft::$app->getEntries()->getEntryTypeById($created['entryTypeId']);

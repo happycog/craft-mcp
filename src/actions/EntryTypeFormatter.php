@@ -6,6 +6,7 @@ namespace happycog\craftmcp\actions;
 
 use Craft;
 use craft\fields\Matrix;
+use craft\helpers\UrlHelper;
 use craft\models\EntryType;
 
 class EntryTypeFormatter
@@ -26,22 +27,27 @@ class EntryTypeFormatter
         $layout = $entryType->getFieldLayout();
         $fields = $this->fieldFormatter->formatFieldsForLayout($layout);
 
-        // Get control panel URL safely
-        $generalConfig = Craft::$app->getConfig()->getGeneral();
-        $cpUrl = $generalConfig->cpUrl ?? '';
+        // Generate control panel URL
+        $editUrl = UrlHelper::cpUrl('settings/entry-types/' . $entryType->id);
 
         // Build entry type data
         return array_merge([
             'id' => $entryType->id,
             'name' => $entryType->name,
             'handle' => $entryType->handle,
+            'description' => $entryType->description,
             'hasTitleField' => $entryType->hasTitleField,
             'titleTranslationMethod' => $entryType->titleTranslationMethod,
+            'titleTranslationKeyFormat' => $entryType->titleTranslationKeyFormat,
             'titleFormat' => $entryType->titleFormat,
+            'icon' => $entryType->icon,
+            'color' => $entryType->color?->value,
+            'showSlugField' => $entryType->showSlugField,
+            'showStatusField' => $entryType->showStatusField,
             'fieldLayoutId' => $entryType->fieldLayoutId,
             'uid' => $entryType->uid,
             'fields' => $fields,
-            'editUrl' => $cpUrl ? $cpUrl . "/admin/settings/entry-types/{$entryType->id}" : null,
+            'editUrl' => $editUrl,
         ], array_filter([
             'usedBy' => $includeUsedBy ? $this->findEntryTypeUsage($entryType) : null,
         ]));
