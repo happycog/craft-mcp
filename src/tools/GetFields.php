@@ -32,6 +32,9 @@ class GetFields
             : $this->getAllGlobalFields();
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     protected function getFieldsForLayout(int $fieldLayoutId): array
     {
         $layout = Craft::$app->getFields()->getLayoutById($fieldLayoutId);
@@ -41,6 +44,9 @@ class GetFields
         return $this->fieldFormatter->formatFieldsForLayout($layout);
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     protected function getAllGlobalFields(): array
     {
         $fields = Craft::$app->getFields()->getAllFields('global');
