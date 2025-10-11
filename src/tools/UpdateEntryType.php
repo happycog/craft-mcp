@@ -4,14 +4,17 @@ namespace happycog\craftmcp\tools;
 
 use Craft;
 use craft\enums\Color;
-use craft\fieldlayoutelements\entries\EntryTitleField;
-use craft\helpers\UrlHelper;
+use happycog\craftmcp\actions\EntryTypeFormatter;
 use happycog\craftmcp\exceptions\ModelSaveException;
 use PhpMcp\Server\Attributes\McpTool;
 use PhpMcp\Server\Attributes\Schema;
 
 class UpdateEntryType
 {
+    public function __construct(
+        private EntryTypeFormatter $entryTypeFormatter,
+    ) {
+    }
     /**
      * @return array<string, mixed>
      */
@@ -68,24 +71,7 @@ class UpdateEntryType
 
         // Get the existing entry type
         $entryType = $entriesService->getEntryTypeById($entryTypeId);
-        if (!$entryType) {
-            throw new \InvalidArgumentException("Entry type with ID {$entryTypeId} not found.");
-        }
-
-        // Store original values for comparison
-        $originalValues = [
-            'name' => $entryType->name,
-            'handle' => $entryType->handle,
-            'description' => $entryType->description,
-            'hasTitleField' => $entryType->hasTitleField,
-            'titleTranslationMethod' => $entryType->titleTranslationMethod,
-            'titleTranslationKeyFormat' => $entryType->titleTranslationKeyFormat,
-            'titleFormat' => $entryType->titleFormat,
-            'icon' => $entryType->icon,
-            'color' => $entryType->color?->value,
-            'showSlugField' => $entryType->showSlugField,
-            'showStatusField' => $entryType->showStatusField,
-        ];
+        throw_unless($entryType, "Entry type with ID {$entryTypeId} not found");
 
         // Update properties if provided
         if ($name !== null) {
@@ -117,7 +103,7 @@ class UpdateEntryType
         }
 
         if ($color !== null) {
-            $entryType->color = $this->getColorEnum($color);
+            $entryType->color = Color::tryFrom($color);
         }
 
         if ($showSlugField !== null) {
@@ -131,61 +117,8 @@ class UpdateEntryType
         // Save the updated entry type
         throw_unless($entriesService->saveEntryType($entryType), ModelSaveException::class, $entryType);
 
-        // Generate control panel URL
-        $entryTypeId = $entryType->id;
-        if ($entryTypeId === null) {
-            throw new \Exception("Entry type ID is null after save operation");
-        }
-        $editUrl = UrlHelper::cpUrl('settings/entry-types/' . $entryTypeId);
-
-        // Refresh the entry type from database to get the actual saved values
-        $savedEntryType = $entriesService->getEntryTypeById($entryTypeId);
-        if (!$savedEntryType) {
-            throw new \Exception("Failed to retrieve saved entry type with ID {$entryTypeId}");
-        }
-
-        // Determine what changed
-        $changes = [];
-        $newValues = [
-            'name' => $savedEntryType->name,
-            'handle' => $savedEntryType->handle,
-            'hasTitleField' => $savedEntryType->hasTitleField,
-            'titleTranslationMethod' => $savedEntryType->titleTranslationMethod,
-            'titleTranslationKeyFormat' => $savedEntryType->titleTranslationKeyFormat,
-            'titleFormat' => $savedEntryType->titleFormat,
-            'icon' => $savedEntryType->icon,
-            'color' => $savedEntryType->color?->value,
-            'showSlugField' => $savedEntryType->showSlugField,
-            'showStatusField' => $savedEntryType->showStatusField,
-        ];
-
-        foreach ($newValues as $key => $newValue) {
-            if ($originalValues[$key] !== $newValue) {
-                $changes[] = $key;
-            }
-        }
-
-        $changesSummary = empty($changes)
-            ? 'No changes were made to the entry type.'
-            : 'Updated: ' . implode(', ', $changes);
-
-        return [
-            '_notes' => "The entry type was successfully updated. {$changesSummary} You can further configure it in the Craft control panel.",
-            'entryTypeId' => $savedEntryType->id,
-            'name' => $savedEntryType->name,
-            'handle' => $savedEntryType->handle,
-            'hasTitleField' => $savedEntryType->hasTitleField,
-            'titleTranslationMethod' => $savedEntryType->titleTranslationMethod,
-            'titleTranslationKeyFormat' => $savedEntryType->titleTranslationKeyFormat,
-            'titleFormat' => $savedEntryType->titleFormat,
-            'icon' => $savedEntryType->icon,
-            'color' => $savedEntryType->color?->value,
-            'showSlugField' => $savedEntryType->showSlugField,
-            'showStatusField' => $savedEntryType->showStatusField,
-            'fieldLayoutId' => $savedEntryType->fieldLayoutId,
-            'editUrl' => $editUrl,
-            'changes' => $changes,
-        ];
+        // Use the formatter to return consistent entry type data
+        return $this->entryTypeFormatter->formatEntryType($entryType, false);
     }
 
     /**
@@ -205,38 +138,5 @@ class UpdateEntryType
         }
 
         return $methodMap[$method];
-    }
-
-    private function getColorEnum(string $color): Color
-    {
-        $colorMap = [
-            'red' => Color::Red,
-            'orange' => Color::Orange,
-            'amber' => Color::Amber,
-            'yellow' => Color::Yellow,
-            'lime' => Color::Lime,
-            'green' => Color::Green,
-            'emerald' => Color::Emerald,
-            'teal' => Color::Teal,
-            'cyan' => Color::Cyan,
-            'sky' => Color::Sky,
-            'blue' => Color::Blue,
-            'indigo' => Color::Indigo,
-            'violet' => Color::Violet,
-            'purple' => Color::Purple,
-            'fuchsia' => Color::Fuchsia,
-            'pink' => Color::Pink,
-            'rose' => Color::Rose,
-            'white' => Color::White,
-            'gray' => Color::Gray,
-            'black' => Color::Black,
-        ];
-
-        $lowerColor = strtolower($color);
-        if (!isset($colorMap[$lowerColor])) {
-            throw new \InvalidArgumentException("Invalid color '{$color}'. Must be one of: " . implode(', ', array_keys($colorMap)));
-        }
-
-        return $colorMap[$lowerColor];
     }
 }
