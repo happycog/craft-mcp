@@ -5,6 +5,7 @@ namespace happycog\craftmcp\tools;
 use Craft;
 use PhpMcp\Server\Attributes\McpTool;
 use happycog\craftmcp\actions\FieldFormatter;
+use PhpMcp\Server\Attributes\Schema;
 
 class GetFields
 {
@@ -25,8 +26,10 @@ class GetFields
         You can pass an optional fieldLayoutId, if you know it, to only get the fields associated with that layout.
         END
     )]
-    public function get(?int $fieldLayoutId): array
-    {
+    public function get(
+        #[Schema(type: 'number', description: 'Optional field layout ID to filter fields')]
+        ?int $fieldLayoutId
+    ): array {
         return $fieldLayoutId
             ? $this->getFieldsForLayout($fieldLayoutId)
             : $this->getAllGlobalFields();
