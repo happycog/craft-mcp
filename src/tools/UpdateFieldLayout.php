@@ -23,6 +23,10 @@ class UpdateFieldLayout
         and controlling field order. Works with any Craft model that has a field layout (entry types, users,
         assets, etc.).
 
+        Note: this method expects the full field layout to be provided each time. To retain existing fields you must
+        first query the field layout, get the full `tabs` structure, modify it as needed, and then pass the full
+        structure back to this method to update it.
+
         After updating the field layout always link the user back to the relevant settings in the Craft control
         panel so they can review the changes in the context of the Craft UI.
         END
