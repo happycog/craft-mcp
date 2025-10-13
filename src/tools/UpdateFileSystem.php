@@ -17,49 +17,42 @@ class UpdateFileSystem
     ) {
     }
 
-    /**
-     * @param array<string, mixed> $attributeAndSettingData
-     * @return array<string, mixed>
-     */
-    #[McpTool(
-        name: 'update_file_system',
-        description: <<<'END'
-        Update an existing file system in Craft CMS. Modify file system settings and configuration.
+     /**
+      * @param array<string, mixed> $attributeAndSettingData
+      * @return array<string, mixed>
+      */
+     #[McpTool(
+         name: 'update_file_system',
+         description: <<<'END'
+         Update an existing file system in Craft CMS. Modify file system settings and configuration.
 
-        You can update basic properties like name and handle, as well as file system-specific settings.
-        For local file systems, you can update the path and URL settings.
+         You can update basic properties like name and handle, as well as file system-specific settings.
+         For local file systems, you can update the path and URL settings.
 
-        - fileSystemId: Required ID of the file system to update
-        - attributeAndSettingData: Object containing file system attributes and settings to update
+         - fileSystemHandle: Required handle of the file system to update (use handle instead of ID for reliability)
+         - attributeAndSettingData: Object containing file system attributes and settings to update
 
-        Supported attributes:
-        - name: File system name
-        - handle: File system handle (must be unique)
-        - hasUrls: Whether files have public URLs
-        - url: Base URL for public files
-        - settings: File system-specific settings (e.g., path for local file systems)
+         Supported attributes:
+         - name: File system name
+         - handle: File system handle (must be unique)
+         - hasUrls: Whether files have public URLs
+         - url: Base URL for public files
+         - settings: File system-specific settings (e.g., path for local file systems)
 
-        After updating the file system always link the user back to the file system settings in the Craft control panel so they can review
-        the changes in the context of the Craft UI.
-        END
-    )]
-    public function update(
-        #[Schema(type: 'number', description: 'ID of the file system to update')]
-        int $fileSystemId,
+         After updating the file system always link the user back to the file system settings in the Craft control panel so they can review
+         the changes in the context of the Craft UI.
+         END
+     )]
+      public function update(
+         #[Schema(type: 'string', description: 'Handle of the file system to update')]
+         string $fileSystemHandle,
 
-        #[Schema(type: 'object', description: 'File system attributes and settings to update')]
-        array $attributeAndSettingData
-    ): array {
-        // Get existing file system by handle first
-        $allFileSystems = $this->fsService->getAllFilesystems();
-        $fs = null;
-        foreach ($allFileSystems as $filesystem) {
-            if ($filesystem->id === $fileSystemId) {
-                $fs = $filesystem;
-                break;
-            }
-        }
-        throw_unless($fs instanceof FsInterface, \InvalidArgumentException::class, "File system with ID {$fileSystemId} not found");
+         #[Schema(type: 'object', description: 'File system attributes and settings to update')]
+         array $attributeAndSettingData
+      ): array {
+         // Find the file system by handle (the proper Craft API method)
+         $fs = $this->fsService->getFilesystemByHandle($fileSystemHandle);
+         throw_unless($fs instanceof FsInterface, \InvalidArgumentException::class, "File system with handle '{$fileSystemHandle}' not found");
 
         // Update basic attributes
         if (isset($attributeAndSettingData['name']) && is_string($attributeAndSettingData['name'])) {
@@ -91,20 +84,20 @@ class UpdateFileSystem
 
         // Save file system
         throw_unless($this->fsService->saveFilesystem($fs), ModelSaveException::class, $fs);
-
-        return [
-            '_notes' => 'The file system was successfully updated.',
-            'fileSystemId' => $fs->id,
-            'name' => $fs->name,
-            'handle' => $fs->handle,
-            'type' => get_class($fs),
-            'hasUrls' => $fs->hasUrls,
-            'url' => $fs->url,
-            'dateCreated' => $fs->dateCreated?->format('c'),
-            'dateUpdated' => $fs->dateUpdated?->format('c'),
-            'editUrl' => $this->getFileSystemEditUrl($fs),
-            'settings' => $this->sanitizeSettingsForOutput($fs),
-        ];
+        
+         return [
+             '_notes' => 'The file system was successfully updated.',
+             'fileSystemId' => $fs->id, // May be null in test environments
+             'name' => $fs->name,
+             'handle' => $fs->handle,
+             'type' => get_class($fs),
+             'hasUrls' => $fs->hasUrls,
+             'url' => $fs->url,
+             'dateCreated' => $fs->dateCreated?->format('c'),
+             'dateUpdated' => $fs->dateUpdated?->format('c'),
+             'editUrl' => $this->getFileSystemEditUrl($fs),
+             'settings' => $this->sanitizeSettingsForOutput($fs),
+         ];
     }
 
     /**

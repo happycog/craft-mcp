@@ -18,40 +18,33 @@ class DeleteFileSystem
     ) {
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    #[McpTool(
-        name: 'delete_file_system',
-        description: <<<'END'
-        Delete a file system from Craft CMS. Removes the file system configuration and settings.
+     /**
+      * @return array<string, mixed>
+      */
+     #[McpTool(
+         name: 'delete_file_system',
+         description: <<<'END'
+         Delete a file system from Craft CMS. Removes the file system configuration and settings.
 
-        File systems can only be deleted if they are not currently in use by any volumes.
-        This is a safety measure to prevent breaking existing volume configurations.
+         File systems can only be deleted if they are not currently in use by any volumes.
+         This is a safety measure to prevent breaking existing volume configurations.
 
-        - fileSystemId: Required ID of the file system to delete
+         - fileSystemHandle: Required handle of the file system to delete (use handle instead of ID for reliability)
 
-        The operation will fail if:
-        - The file system doesn't exist
-        - The file system is currently used by one or more volumes
+         The operation will fail if:
+         - The file system doesn't exist
+         - The file system is currently used by one or more volumes
 
-        Before deletion, all volumes must be updated to use a different file system or be deleted themselves.
-        END
-    )]
-    public function delete(
-        #[Schema(type: 'number', description: 'ID of the file system to delete')]
-        int $fileSystemId
-    ): array {
-        // Get existing file system by ID
-        $allFileSystems = $this->fsService->getAllFilesystems();
-        $fs = null;
-        foreach ($allFileSystems as $filesystem) {
-            if ($filesystem->id === $fileSystemId) {
-                $fs = $filesystem;
-                break;
-            }
-        }
-        throw_unless($fs instanceof FsInterface, \InvalidArgumentException::class, "File system with ID {$fileSystemId} not found");
+         Before deletion, all volumes must be updated to use a different file system or be deleted themselves.
+         END
+     )]
+     public function delete(
+         #[Schema(type: 'string', description: 'Handle of the file system to delete')]
+         string $fileSystemHandle
+     ): array {
+         // Find the file system by handle (the proper Craft API method)
+         $fs = $this->fsService->getFilesystemByHandle($fileSystemHandle);
+         throw_unless($fs instanceof FsInterface, \InvalidArgumentException::class, "File system with handle '{$fileSystemHandle}' not found");
 
         // Check if file system is in use by any volumes
         $volumes = $this->volumesService->getAllVolumes();
