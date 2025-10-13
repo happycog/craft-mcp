@@ -85,9 +85,8 @@ class UpdateAsset
                     $newFilename = basename($replaceFilePath);
                 }
 
-                // Replace the asset file and save
+                // Replace the asset file (this handles saving internally)
                 Craft::$app->getAssets()->replaceAssetFile($asset, $tempFilePath, $newFilename);
-                throw_unless(Craft::$app->getElements()->saveElement($asset), ModelSaveException::class, $asset);
             } else {
                 // Save asset without file replacement
                 throw_unless(Craft::$app->getElements()->saveElement($asset), ModelSaveException::class, $asset);

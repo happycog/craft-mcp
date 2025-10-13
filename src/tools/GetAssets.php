@@ -6,6 +6,7 @@ use Craft;
 use craft\elements\Asset;
 use craft\helpers\ElementHelper;
 use craft\services\Assets;
+use craft\services\Volumes;
 use PhpMcp\Server\Attributes\McpTool;
 use PhpMcp\Server\Attributes\Schema;
 
@@ -13,32 +14,62 @@ class GetAssets
 {
     public function __construct(
         protected Assets $assetsService,
+        protected Volumes $volumesService,
     ) {
     }
 
     /**
      * @param array<int>|null $assetIds
-     * @return array<int, array<string, mixed>>
+     * @return array<string, mixed>
      */
     #[McpTool(
         name: 'get_assets',
         description: <<<'END'
-        Get assets from Craft CMS. Retrieve all assets or filter by specific asset IDs.
+        Get assets from Craft CMS. Retrieve all assets or filter by various criteria.
 
         Assets include file properties (size, dimensions, mimetype), URLs, custom fields, and volume information.
         For images, transform URLs are provided when applicable.
 
-        - assetIds: Optional array of asset IDs to filter results. If not provided, returns all assets.
+        Parameters:
+        - assetIds: Optional array of asset IDs to filter results
+        - volumeId: Optional volume ID to filter assets by volume
+        - search: Optional search term to find assets by filename or title
+        - limit: Optional limit on number of results returned
         END
     )]
     public function get(
         #[Schema(type: 'array', items: ['type' => 'number'], description: 'Optional list of asset IDs to limit results')]
-        ?array $assetIds = null
+        ?array $assetIds = null,
+        
+        #[Schema(type: 'integer', description: 'Optional volume ID to filter assets by volume')]
+        ?int $volumeId = null,
+        
+        #[Schema(type: 'string', description: 'Optional search term to find assets by filename or title')]
+        ?string $search = null,
+        
+        #[Schema(type: 'integer', description: 'Optional limit on number of results returned')]
+        ?int $limit = null
     ): array {
         $query = Asset::find();
 
         if (is_array($assetIds) && $assetIds !== []) {
             $query->id($assetIds);
+        }
+        
+        if ($volumeId !== null) {
+            $volume = $this->volumesService->getVolumeById($volumeId);
+            if (!$volume) {
+                throw new \InvalidArgumentException("Volume with ID {$volumeId} not found");
+            }
+            $query->volumeId($volumeId);
+        }
+        
+        if ($search !== null) {
+            $query->search($search);
+        }
+        
+        if ($limit !== null) {
+            $query->limit($limit);
         }
 
         $assets = $query->all();
@@ -93,6 +124,9 @@ class GetAssets
             $result[] = $assetData;
         }
 
-        return $result;
+        return [
+            'assets' => $result,
+            'count' => count($result),
+        ];
     }
 }

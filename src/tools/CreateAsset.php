@@ -82,12 +82,17 @@ class CreateAsset
                 $filename ??= basename($filePath);
             }
 
+            // Get root folder for the volume
+            $rootFolder = $this->assetsService->getRootFolderByVolumeId($volumeId);
+            
             // Create asset element
             $asset = new Asset();
             $asset->tempFilePath = $tempFilePath;
             $asset->volumeId = $volumeId;
+            $asset->folderId = $rootFolder->id;
             $asset->filename = $filename;
             $asset->title = $title ?? pathinfo($filename, PATHINFO_FILENAME);
+            $asset->newLocation = "{folder:{$rootFolder->id}}{$filename}";
             $asset->setScenario(Asset::SCENARIO_CREATE);
 
             // Set custom field data
