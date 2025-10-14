@@ -27,10 +27,6 @@ class UpdateFieldLayout
         and UI elements) into tabs. Works with any Craft model that has a field layout (entry types, users,
         assets, etc.).
 
-        This method supports two input formats:
-        1. Legacy format: Use 'fields' array with fieldId for backward compatibility
-        2. New format: Use 'elements' array with complete element structures from get_field_layout
-
         To retain existing elements including native fields like title and UI elements, use get_field_layout
         to get the complete structure, modify it as needed, and pass it back using the 'elements' format.
 
@@ -44,7 +40,7 @@ class UpdateFieldLayout
 
         #[Schema(
             type: 'array',
-            description: 'Array of tabs with either fields (legacy) or elements (new) structure',
+            description: 'Array of tabs with elements structure from get_field_layout',
             items: [
                 'type' => 'object',
                 'properties' => [
@@ -52,21 +48,9 @@ class UpdateFieldLayout
                         'type' => 'string',
                         'description' => 'The display name for the tab'
                     ],
-                    'fields' => [
-                        'type' => 'array',
-                        'description' => 'Legacy format: Array of field configurations (use fieldId)',
-                        'items' => [
-                            'type' => 'object',
-                            'properties' => [
-                                'fieldId' => ['type' => 'integer'],
-                                'required' => ['type' => 'boolean', 'default' => false],
-                                'width' => ['type' => 'integer', 'default' => 100]
-                            ]
-                        ]
-                    ],
                     'elements' => [
                         'type' => 'array',
-                        'description' => 'New format: Complete element structures from get_field_layout',
+                        'description' => 'Complete element structures from get_field_layout',
                         'items' => [
                             'type' => 'object',
                             'properties' => [
@@ -77,7 +61,7 @@ class UpdateFieldLayout
                         ]
                     ]
                 ],
-                'required' => ['name']
+                'required' => ['name', 'elements']
             ]
         )]
         array $tabs
@@ -104,111 +88,27 @@ class UpdateFieldLayout
 
             $elements = [];
             
-            // Check if using legacy 'fields' format or new 'elements' format
-            if (isset($tabData['fields']) && is_array($tabData['fields'])) {
-                // Legacy format: preserve existing non-custom elements, then add custom fields
+            // Require elements array
+            \throw_unless(isset($tabData['elements']) && is_array($tabData['elements']), "Tab '{$tabData['name']}' must have an 'elements' array");
+            
+            // Handle full element structure
+            foreach ($tabData['elements'] as $elementConfig) {
+                assert(is_array($elementConfig));
                 
-                // First, collect all existing native fields and UI elements from this tab
-                $existingTab = null;
-                foreach ($fieldLayout->getTabs() as $existingTabCandidate) {
-                    if ($existingTabCandidate->name === $tabData['name']) {
-                        $existingTab = $existingTabCandidate;
-                        break;
-                    }
-                }
+                $element = null;
                 
-                // Add existing non-custom elements
-                if ($existingTab !== null) {
-                    foreach ($existingTab->getElements() as $element) {
-                        if (!($element instanceof CustomField)) {
-                            $elements[] = $element;
-                        }
-                    }
-                }
-                
-                // Then add the custom fields specified in the legacy format
-                foreach ($tabData['fields'] as $fieldConfig) {
-                    assert(is_array($fieldConfig));
-                    assert(isset($fieldConfig['fieldId']) && is_int($fieldConfig['fieldId']));
-
-                    $fieldId = $fieldConfig['fieldId'];
-                    $required = $fieldConfig['required'] ?? false;
-                    $width = $fieldConfig['width'] ?? 100;
-
-                    assert(is_bool($required));
-                    assert(is_int($width));
-
-                    $field = $fieldsService->getFieldById($fieldId);
-                    \throw_unless($field !== null, "Field with ID {$fieldId} not found");
-
-                    $customFieldElement = new CustomField($field);
-                    $customFieldElement->required = $required;
-                    $customFieldElement->width = $width;
-
-                    $elements[] = $customFieldElement;
-                }
-            } elseif (isset($tabData['elements']) && is_array($tabData['elements'])) {
-                // New format: handle full element structure
-                foreach ($tabData['elements'] as $elementConfig) {
-                    assert(is_array($elementConfig));
-                    
-                    $element = null;
-                    
-                    // Try to preserve existing element by UID
-                    if (isset($elementConfig['uid']) && is_string($elementConfig['uid'])) {
-                        $uid = $elementConfig['uid'];
-                        if (isset($existingElementsByUid[$uid])) {
-                            $element = $existingElementsByUid[$uid];
-                            
-                            // Update properties that can be modified
-                            if (isset($elementConfig['width']) && is_int($elementConfig['width'])) {
-                                $element->width = $elementConfig['width'];
-                            }
-                            
-                            // Update field-specific properties
-                            if ($element instanceof BaseField) {
-                                if (isset($elementConfig['required']) && is_bool($elementConfig['required'])) {
-                                    $element->required = $elementConfig['required'];
-                                }
-                                if (isset($elementConfig['label']) && is_string($elementConfig['label'])) {
-                                    $element->label = $elementConfig['label'];
-                                }
-                                if (isset($elementConfig['instructions']) && is_string($elementConfig['instructions'])) {
-                                    $element->instructions = $elementConfig['instructions'];
-                                }
-                                if (isset($elementConfig['tip']) && is_string($elementConfig['tip'])) {
-                                    $element->tip = $elementConfig['tip'];
-                                }
-                                if (isset($elementConfig['warning']) && is_string($elementConfig['warning'])) {
-                                    $element->warning = $elementConfig['warning'];
-                                }
-                            }
-                        }
-                    }
-                    
-                    // If we couldn't find/reuse an existing element, create a new one
-                    if ($element === null) {
-                        $elementType = $elementConfig['type'] ?? '';
+                // Try to preserve existing element by UID
+                if (isset($elementConfig['uid']) && is_string($elementConfig['uid'])) {
+                    $uid = $elementConfig['uid'];
+                    if (isset($existingElementsByUid[$uid])) {
+                        $element = $existingElementsByUid[$uid];
                         
-                        if ($elementType === CustomField::class && isset($elementConfig['fieldId'])) {
-                            $field = $fieldsService->getFieldById((int)$elementConfig['fieldId']);
-                            \throw_unless($field !== null, "Field with ID {$elementConfig['fieldId']} not found");
-                            
-                            $element = new CustomField($field);
-                        } elseif (class_exists($elementType) && is_subclass_of($elementType, FieldLayoutElement::class)) {
-                            /** @var FieldLayoutElement $element */
-                            $element = new $elementType();
-                        } else {
-                            // Skip invalid element types
-                            continue;
-                        }
-                        
-                        // Set basic properties for new elements
+                        // Update properties that can be modified
                         if (isset($elementConfig['width']) && is_int($elementConfig['width'])) {
                             $element->width = $elementConfig['width'];
                         }
                         
-                        // Set field-specific properties for new elements
+                        // Update field-specific properties
                         if ($element instanceof BaseField) {
                             if (isset($elementConfig['required']) && is_bool($elementConfig['required'])) {
                                 $element->required = $elementConfig['required'];
@@ -226,16 +126,58 @@ class UpdateFieldLayout
                                 $element->warning = $elementConfig['warning'];
                             }
                         }
+                    }
+                }
+                
+                // If we couldn't find/reuse an existing element, create a new one
+                if ($element === null) {
+                    $elementType = $elementConfig['type'] ?? '';
+                    
+                    if ($elementType === CustomField::class && isset($elementConfig['fieldId'])) {
+                        $field = $fieldsService->getFieldById((int)$elementConfig['fieldId']);
+                        \throw_unless($field !== null, "Field with ID {$elementConfig['fieldId']} not found");
                         
-                        // Set native field specific properties
-                        if ($element instanceof BaseNativeField && isset($elementConfig['attribute'])) {
-                            $element->attribute = $elementConfig['attribute'];
+                        $element = new CustomField($field);
+                    } elseif (class_exists($elementType) && is_subclass_of($elementType, FieldLayoutElement::class)) {
+                        /** @var FieldLayoutElement $element */
+                        $element = new $elementType();
+                    } else {
+                        // Skip invalid element types
+                        continue;
+                    }
+                    
+                    // Set basic properties for new elements
+                    if (isset($elementConfig['width']) && is_int($elementConfig['width'])) {
+                        $element->width = $elementConfig['width'];
+                    }
+                    
+                    // Set field-specific properties for new elements
+                    if ($element instanceof BaseField) {
+                        if (isset($elementConfig['required']) && is_bool($elementConfig['required'])) {
+                            $element->required = $elementConfig['required'];
+                        }
+                        if (isset($elementConfig['label']) && is_string($elementConfig['label'])) {
+                            $element->label = $elementConfig['label'];
+                        }
+                        if (isset($elementConfig['instructions']) && is_string($elementConfig['instructions'])) {
+                            $element->instructions = $elementConfig['instructions'];
+                        }
+                        if (isset($elementConfig['tip']) && is_string($elementConfig['tip'])) {
+                            $element->tip = $elementConfig['tip'];
+                        }
+                        if (isset($elementConfig['warning']) && is_string($elementConfig['warning'])) {
+                            $element->warning = $elementConfig['warning'];
                         }
                     }
                     
-                    if ($element !== null) {
-                        $elements[] = $element;
+                    // Set native field specific properties
+                    if ($element instanceof BaseNativeField && isset($elementConfig['attribute'])) {
+                        $element->attribute = $elementConfig['attribute'];
                     }
+                }
+                
+                if ($element !== null) {
+                    $elements[] = $element;
                 }
             }
 
@@ -267,8 +209,7 @@ class UpdateFieldLayout
         foreach ($updatedFieldLayout->getTabs() as $tab) {
             $tabInfo = [
                 'name' => $tab->name,
-                'fields' => [], // Legacy format for backward compatibility
-                'elements' => [], // New format with complete element info
+                'elements' => [], // Complete element info
             ];
 
             /** @var FieldLayoutElement $element */
@@ -283,17 +224,6 @@ class UpdateFieldLayout
                 if ($element instanceof CustomField) {
                     $field = $element->getField();
                     if ($field !== null) {
-                        // Legacy fields format
-                        $tabInfo['fields'][] = [
-                            'id' => $field->id,
-                            'name' => $field->name,
-                            'handle' => $field->handle,
-                            'type' => $field::class,
-                            'required' => $element->required,
-                            'width' => $element->width,
-                        ];
-
-                        // New elements format
                         $elementInfo['fieldId'] = $field->id;
                         $elementInfo['fieldName'] = $field->name;
                         $elementInfo['fieldHandle'] = $field->handle;
@@ -331,7 +261,7 @@ class UpdateFieldLayout
         return [
             '_notes' => [
                 'Field layout updated successfully',
-                'All field layout elements (custom fields, native fields, and UI elements) have been preserved and organized into the specified tabs',
+                'All field layout elements (custom fields, native fields, and UI elements) have been organized into the specified tabs',
                 'The field layout can now be used by any model that references it',
             ],
             'fieldLayout' => $fieldLayoutInfo,

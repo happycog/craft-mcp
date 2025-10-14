@@ -169,12 +169,24 @@ describe('GetFieldLayout', function () {
         $entryTypeId = $entryTypeResult['entryTypeId'];
         $fieldId = $fieldResult['fieldId'];
 
-        // Add custom field to layout using legacy format
+        // First get the initial layout to preserve the title field
+        $initialLayout = ($this->getFieldLayout)($entryTypeId);
+        $initialElements = $initialLayout['fieldLayout']['tabs'][0]['elements'];
+        
+        // Add custom field to layout using elements format (preserving existing title field)
         $tabs = [
             [
                 'name' => 'Content',
-                'fields' => [
-                    ['fieldId' => $fieldId, 'required' => false, 'width' => 100]
+                'elements' => [
+                    // Preserve existing title field
+                    ...$initialElements,
+                    // Add new custom field
+                    [
+                        'type' => 'craft\\fieldlayoutelements\\CustomField',
+                        'width' => 100,
+                        'fieldId' => $fieldId,
+                        'required' => false,
+                    ]
                 ]
             ]
         ];
@@ -270,12 +282,24 @@ describe('Field Layout Preservation Workflow', function () {
         $entryTypeId = $entryTypeResult['entryTypeId'];
         $fieldId = $fieldResult['fieldId'];
 
-        // First, add a custom field using legacy format
+        // First get the initial layout to preserve the title field
+        $initialLayout = ($this->getFieldLayout)($entryTypeId);
+        $initialElements = $initialLayout['fieldLayout']['tabs'][0]['elements'];
+        
+        // First, add a custom field using elements format
         $tabs = [
             [
                 'name' => 'Content',
-                'fields' => [
-                    ['fieldId' => $fieldId, 'required' => false, 'width' => 100]
+                'elements' => [
+                    // Preserve existing title field
+                    ...$initialElements,
+                    // Add new custom field
+                    [
+                        'type' => 'craft\\fieldlayoutelements\\CustomField',
+                        'width' => 100,
+                        'fieldId' => $fieldId,
+                        'required' => false,
+                    ]
                 ]
             ]
         ];
@@ -383,21 +407,29 @@ describe('Field Layout Preservation Workflow', function () {
         $initialLayout = ($this->getFieldLayout)($entryTypeId);
         expect($initialLayout['fieldLayout']['tabs'][0]['elements'])->toHaveCount(1);
 
-        // Step 2: Add a custom field using legacy format first
+        // Step 2: Add a custom field using elements format
         $fieldResult = ($this->createField)('Workflow Field', 'craft\\fields\\PlainText', [
             'handle' => 'workflowField'
         ]);
         $fieldId = $fieldResult['fieldId'];
 
-        $legacyTabs = [
+        $elementsTabs = [
             [
                 'name' => 'Content',
-                'fields' => [
-                    ['fieldId' => $fieldId, 'required' => false, 'width' => 100]
+                'elements' => [
+                    // Preserve existing title field
+                    ...$initialLayout['fieldLayout']['tabs'][0]['elements'],
+                    // Add new custom field
+                    [
+                        'type' => 'craft\\fieldlayoutelements\\CustomField',
+                        'width' => 100,
+                        'fieldId' => $fieldId,
+                        'required' => false,
+                    ]
                 ]
             ]
         ];
-        ($this->updateFieldLayout)($entryTypeId, $legacyTabs);
+        ($this->updateFieldLayout)($entryTypeId, $elementsTabs);
 
         // Step 3: Get current layout (should have title + custom field)
         $currentLayout = ($this->getFieldLayout)($entryTypeId);
