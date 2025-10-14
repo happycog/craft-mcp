@@ -23,12 +23,21 @@ class UpdateFieldLayout
     #[McpTool(
         name: 'update_field_layout',
         description: <<<'END'
-        Update a field layout by organizing all field layout elements (custom fields, native fields like title,
-        and UI elements) into tabs. Works with any Craft model that has a field layout (entry types, users,
-        assets, etc.).
+        **CRITICAL**: This tool REPLACES the entire field layout. You MUST first use get_field_layout
+        to retrieve the existing structure, then modify it to add/remove/reorder elements, then pass
+        the complete modified structure back. Failing to include existing elements will DELETE them.
 
-        To retain existing elements including native fields like title and UI elements, use get_field_layout
-        to get the complete structure, modify it as needed, and pass it back using the 'elements' format.
+        **Required workflow:**
+        1. Call get_field_layout to get current structure with all existing elements
+        2. Modify the returned tabs/elements array as needed (add, remove, reorder)
+        3. Pass the complete modified structure to this tool
+
+        **Example:** To add a field while keeping existing title field:
+        - First: get_field_layout returns existing title element with its UID
+        - Then: Include that title element plus your new field in the elements array
+        - Finally: Call this tool with the complete structure
+
+        Works with any Craft model that has a field layout (entry types, users, assets, etc.).
 
         After updating the field layout always link the user back to the relevant settings in the Craft control
         panel so they can review the changes in the context of the Craft UI.
@@ -54,9 +63,10 @@ class UpdateFieldLayout
                         'items' => [
                             'type' => 'object',
                             'properties' => [
-                                'uid' => ['type' => 'string'],
-                                'type' => ['type' => 'string'],
-                                'width' => ['type' => 'integer', 'default' => 100]
+                                'uid' => ['type' => 'string', 'description' => 'The UID of the element (for preserving existing elements)'],
+                                'type' => ['type' => 'string', 'description' => 'The class name of the element, e.g. craft\fieldlayoutelements\CustomField'],
+                                'width' => ['type' => 'integer', 'default' => 100, 'description' => 'The width of the element in the layout (1-100)'],
+                                'fieldId' => ['type' => 'integer', 'description' => 'Required for new CustomField elements. The ID of the field to add'],
                             ]
                         ]
                     ]
