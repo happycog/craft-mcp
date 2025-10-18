@@ -546,6 +546,27 @@ test('endpoint returns valid response', function () {
 
 ### Type Safety and PHPStan Patterns
 - **PHPStan Level**: Project runs at `level: max` (strictest analysis) with official Craft CMS integration
+- **MCP Tool Type Documentation**: Tools use PHPStan docblock types instead of MCP Schema attributes:
+  ```php
+  /**
+   * Tool description goes in method docblock.
+   *
+   * Multi-line descriptions are supported and preferred for clarity.
+   *
+   * @param 'single'|'channel'|'structure' $type PHPStan union types for enums
+   * @param array<int> $arrayParam PHPStan array shape for complex types
+   * @param array<string, mixed> $data
+   * @return array<string, mixed>
+   */
+  public function toolMethod(
+      /** Simple inline description for basic parameters */
+      string $name,
+      
+      /** Multi-line inline descriptions
+       * for complex parameters */
+      ?array $data = null,
+  ): array
+  ```
 - **Array Return Types**: All methods returning arrays must have PHPDoc annotations:
   ```php
   /**
@@ -618,6 +639,12 @@ test('endpoint returns valid response', function () {
 - CSRF validation disabled for JSON-RPC compatibility
 - Session-based isolation prevents cross-client data leakage
 - Input validation handled at tool level
+
+### File System Safety
+- **CRITICAL**: When working with temporary files or scripts, ONLY create them within the project directory (`/home/ubuntu/sites/craft-mcp/plugins/craft-mcp/`)
+- **NEVER** create temporary files in `/tmp/` or other system directories
+- If temporary files are needed for development tasks, create them in a `temp/` subdirectory within the project
+- Clean up any temporary files created during development tasks before committing
 
 ## Architecture Decisions
 

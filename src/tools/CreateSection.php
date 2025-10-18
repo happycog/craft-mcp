@@ -8,75 +8,69 @@ use craft\helpers\UrlHelper;
 use craft\models\Section;
 use craft\models\Section_SiteSettings;
 use happycog\craftmcp\exceptions\ModelSaveException;
-use PhpMcp\Server\Attributes\McpTool;
-use PhpMcp\Server\Attributes\Schema;
 
 class CreateSection
 {
-
     /**
+     * Create a new section in Craft CMS. Sections define the structural organization of content with different types:
+     * - Single: One entry per section (e.g., homepage, about page)
+     * - Channel: Multiple entries with flexible structure (e.g., news, blog posts)
+     * - Structure: Hierarchical entries with parent-child relationships (e.g., pages with nested structure)
+     *
+     * Supports multi-site installations with site-specific settings. Entry types must be created separately using the
+     * CreateEntryType tool and can be assigned to the section after creation.
+     *
+     * Returns the section details including control panel URL for further configuration.
+     *
+     * After creating the section always link the user back to the section settings in the Craft control panel
+     * so they can review and further configure the section in the context of the Craft UI.
+     *
+     * @param 'single'|'channel'|'structure' $type
      * @param array<int> $entryTypeIds
-     * @param array<int, array<string, mixed>>|null $siteSettings
+     * @param 'all'|'siteGroup'|'language'|'custom'|'none' $propagationMethod
+     * @param 'beginning'|'end' $defaultPlacement
+     * @param array<int, array{siteId: int, enabledByDefault?: bool, hasUrls?: bool, uriFormat?: string, template?: string}>|null $siteSettings
      * @return array<string, mixed>
      */
-    #[McpTool(
-        name: 'create_section',
-        description: <<<'END'
-        Create a new section in Craft CMS. Sections define the structural organization of content with different types:
-        - Single: One entry per section (e.g., homepage, about page)
-        - Channel: Multiple entries with flexible structure (e.g., news, blog posts)
-        - Structure: Hierarchical entries with parent-child relationships (e.g., pages with nested structure)
-
-        Supports multi-site installations with site-specific settings. Entry types must be created separately using the
-        CreateEntryType tool and can be assigned to the section after creation.
-
-        Returns the section details including control panel URL for further configuration.
-
-        After creating the section always link the user back to the section settings in the Craft control panel
-        so they can review and further configure the section in the context of the Craft UI.
-        END
-    )]
     public function create(
-        #[Schema(type: 'string', description: 'The display name for the section')]
+        /** The display name for the section */
         string $name,
 
-        #[Schema(type: 'string', enum: ['single', 'channel', 'structure'], description: 'Section type: single (one entry), channel (multiple entries), or structure (hierarchical entries)')]
+        /** Section type: single (one entry), channel (multiple entries), or structure (hierarchical entries) */
         string $type,
 
-        #[Schema(type: 'array', items: ['type' => 'integer'], description: 'Array of entry type IDs to assign to this section. Use CreateEntryType tool to create entry types first.')]
+        /** Array of entry type IDs to assign to this section. Use CreateEntryType tool to create entry types first. This can also be empty to create a section without any entry types. Although not common this is possible. */
         array $entryTypeIds,
 
-        #[Schema(type: 'string', description: 'The section handle (machine-readable name). Auto-generated from name if not provided.')]
+        /** The section handle (machine-readable name). Auto-generated from name if not provided. */
         ?string $handle = null,
 
-        #[Schema(type: 'boolean', description: 'Whether to enable entry versioning for this section')]
+        /** Whether to enable entry versioning for this section */
         bool $enableVersioning = true,
 
-        #[Schema(type: 'string', enum: ['all', 'siteGroup', 'language', 'custom', 'none'], description: 'How content propagates across sites: all, siteGroup, language, custom, or none')]
+        /** How content propagates across sites */
         string $propagationMethod = Section::PROPAGATION_METHOD_ALL,
 
-        #[Schema(type: 'integer', description: 'Maximum hierarchy levels (only for structure sections). Null/0 for unlimited.')]
+        /** Maximum hierarchy levels (only for structure sections). Null/0 for unlimited. */
         ?int $maxLevels = null,
 
-        #[Schema(type: 'string', enum: ['beginning', 'end'], description: 'Where new entries are placed by default (only for structure sections)')]
+        /** Where new entries are placed by default (only for structure sections) */
         string $defaultPlacement = 'end',
 
-        #[Schema(type: 'integer', description: 'Maximum number of authors that can be assigned to entries in this section')]
+        /** Maximum number of authors that can be assigned to entries in this section */
         ?int $maxAuthors = null,
 
-        #[Schema(type: 'array', description: 'Site-specific settings. If not provided, section will be enabled for all sites with default settings.', items: [
-            'type' => 'object',
-            'properties' => [
-                'siteId' => ['type' => 'integer', 'description' => 'Site ID'],
-                'enabledByDefault' => ['type' => 'boolean', 'description' => 'Enable entries by default'],
-                'hasUrls' => ['type' => 'boolean', 'description' => 'Whether entries have URLs'],
-                'uriFormat' => ['type' => 'string', 'description' => 'URI format pattern'],
-                'template' => ['type' => 'string', 'description' => 'Template path for rendering']
-            ],
-            'required' => ['siteId']
-        ])]
+        /**
+         * Site-specific settings. If not provided, section will be enabled for all sites with default settings.
+         * Each array entry contains:
+         * - siteId: Site ID (required)
+         * - enabledByDefault: Enable entries by default for this site (optional)
+         * - hasUrls: Whether entries have URLs on this site (optional)
+         * - uriFormat: URI format pattern, e.g., "blog/{slug}" or "{slug}" (optional)
+         * - template: Template path for rendering entries, e.g., "_blog/entry" (optional)
+         */
         ?array $siteSettings = null
-    ): array {
+     ): array {
         throw_unless(in_array($type, [Section::TYPE_SINGLE, Section::TYPE_CHANNEL, Section::TYPE_STRUCTURE]),
                     'Section type must be single, channel, or structure');
 

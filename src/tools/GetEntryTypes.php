@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace happycog\craftmcp\tools;
 
 use Craft;
-use PhpMcp\Server\Attributes\McpTool;
-use PhpMcp\Server\Attributes\Schema;
 use happycog\craftmcp\actions\EntryTypeFormatter;
 
 class GetEntryTypes
@@ -18,15 +16,13 @@ class GetEntryTypes
 
 
     /**
+     * Get a list of entry types with complete field information, usage stats, and edit URLs.
+     *
      * @param array<int>|null $entryTypeIds
      * @return array<int, array<string, mixed>>
      */
-    #[McpTool(
-        name: 'get_entry_types',
-        description: 'Get a list of entry types with complete field information, usage stats, and edit URLs.'
-    )]
     public function getAll(
-        #[Schema(type: 'array', items: ['type' => 'number'], description: 'Optional list of entry type IDs to limit results')]
+        /** Optional list of entry type IDs to limit results */
         ?array $entryTypeIds = null
     ): array
     {
