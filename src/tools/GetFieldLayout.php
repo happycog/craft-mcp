@@ -11,26 +11,20 @@ use craft\fieldlayoutelements\CustomField;
 use craft\models\FieldLayout;
 use craft\models\FieldLayoutTab;
 use happycog\craftmcp\exceptions\ModelSaveException;
-use PhpMcp\Server\Attributes\McpTool;
-use PhpMcp\Server\Attributes\Schema;
 
 class GetFieldLayout
 {
     /**
+     * Get the details of a field layout by its ID, including tabs and all field layout elements
+     * (custom fields, native fields like title, and UI elements like headings).
+     *
+     * This returns the complete field layout structure needed to preserve all elements
+     * when updating field layouts.
+     *
      * @return array<string, mixed>
      */
-    #[McpTool(
-        name: 'get_field_layout',
-        description: <<<'END'
-        Get the details of a field layout by its ID, including tabs and all field layout elements
-        (custom fields, native fields like title, and UI elements like headings).
-        
-        This returns the complete field layout structure needed to preserve all elements
-        when updating field layouts.
-        END
-    )]
     public function get(
-        #[Schema(type: 'integer', description: 'The ID of the field layout to retrieve')]
+        /** The ID of the field layout to retrieve */
         int $fieldLayoutId,
     ): array {
         $fieldsService = Craft::$app->getFields();
